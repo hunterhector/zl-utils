@@ -11,5 +11,5 @@ public class PropBankTagSet {
 
     public static final String ARG1 = "ARG1";
 
-
+    public static final String ARG2 = "ARG2";
 }
