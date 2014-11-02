@@ -77,4 +77,22 @@ public class Configuration {
 
         return value.split("[,\\s]+");
     }
+
+    public int[] getIntList(String key) {
+        String value = get(key);
+        if (value == null) {
+            return new int[0];
+        }
+
+        String[] strs = value.split("[,\\s]+");
+
+        int[] results = new int[strs.length];
+
+        for (int i = 0; i < strs.length; i++) {
+            results[i] = Integer.parseInt(strs[i]);
+        }
+
+        return results;
+    }
+
 }
