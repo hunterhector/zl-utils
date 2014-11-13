@@ -1,26 +1,32 @@
 package edu.cmu.cs.lti.collections;
 
+import edu.cmu.cs.lti.model.MutableDouble;
 import edu.cmu.cs.lti.utils.BitUtils;
 import gnu.trove.iterator.TLongObjectIterator;
 import gnu.trove.iterator.TShortDoubleIterator;
 import gnu.trove.map.TShortDoubleMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
-import gnu.trove.map.hash.TShortDoubleHashMap;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.Serializable;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
+ * The secondary map of this table is a tree map, which does not use additional
+ * array space. The value is implemented as a MutableDouble for fast modification
+ * <p/>
  * Created with ShortelliJ IDEA.
  * User: zhengzhongliu
  * Date: 11/11/14
  * Time: 3:49 PM
  */
-public class TLongShortDoubleHashTable implements Serializable {
+public class TLongShortDoubleTreeTable implements Serializable {
     private static final long serialVersionUID = 6390995626236546140L;
-    TLongObjectHashMap<TShortDoubleMap> table = new TLongObjectHashMap<>();
+    TLongObjectHashMap<TreeMap<Short, MutableDouble>> table = new TLongObjectHashMap<>();
 
-    public TLongShortDoubleHashTable() {
+
+    public TLongShortDoubleTreeTable() {
 
     }
 
@@ -50,28 +56,26 @@ public class TLongShortDoubleHashTable implements Serializable {
      * @return return the value as Double object
      */
     public Double get(long rowKey, short colKey) {
-        TShortDoubleMap row = table.get(rowKey);
-
+        TreeMap<Short, MutableDouble> row = table.get(rowKey);
         if (row != null) {
-            //using no_entry_value in trove sounds dangerous, let's explicitly test
-            if (row.containsKey(colKey)) {
-                return row.get(colKey);
-            }
+            MutableDouble value = row.get(colKey);
+            return value == null ? null : value.get();
         }
         return null;
     }
 
-    public TShortDoubleMap getRow(long rowKey) {
+    public TreeMap<Short, MutableDouble> getRow(long rowKey) {
         return table.get(rowKey);
     }
 
     public void put(long rowKey, short colKey, double value) {
-        TShortDoubleMap row = table.get(rowKey);
+        TreeMap<Short, MutableDouble> row = table.get(rowKey);
+        MutableDouble mutableVal = new MutableDouble(value);
         if (row != null) {
-            row.put(colKey, value);
+            row.put(colKey, mutableVal);
         } else {
-            row = new TShortDoubleHashMap();
-            row.put(colKey, value);
+            row = new TreeMap<>();
+            row.put(colKey, mutableVal);
             table.put(rowKey, row);
         }
     }
@@ -86,7 +90,8 @@ public class TLongShortDoubleHashTable implements Serializable {
 
     public boolean adjust(long rowKey, short colKey, double value) {
         if (contains(rowKey, colKey)) {
-            return table.get(rowKey).adjustValue(colKey, value);
+            TreeMap<Short, MutableDouble> row = table.get(rowKey);
+            return adjustRow(row, colKey, value);
         } else {
             return false;
         }
@@ -94,6 +99,7 @@ public class TLongShortDoubleHashTable implements Serializable {
 
     /**
      * Adjusts the primitive value mapped to the key if the key pair is present in the map. Otherwise, the initial_value is put in the map.
+     * This is pretty expensive because contains and put are log(N) operations here
      *
      * @param rowKey       the row key of the value to increment
      * @param colKey       the column key of the value to increment
@@ -104,17 +110,41 @@ public class TLongShortDoubleHashTable implements Serializable {
     public double adjustOrPutValue(long rowKey, short colKey, double adjustAmount, double putAmount) {
         double newValue;
         if (table.containsKey(rowKey)) {
-            newValue = table.get(rowKey).adjustOrPutValue(colKey, adjustAmount, putAmount);
+            TreeMap<Short, MutableDouble> row = table.get(rowKey);
+            newValue = adjustOrPutValueToRow(row, colKey, adjustAmount, putAmount);
         } else {
-            TShortDoubleMap row = new TShortDoubleHashMap();
-            row.put(colKey, putAmount);
+            TreeMap<Short, MutableDouble> row = new TreeMap<>();
+            row.put(colKey, new MutableDouble(putAmount));
             newValue = putAmount;
             table.put(rowKey, row);
         }
         return newValue;
     }
 
-    public TLongObjectIterator<TShortDoubleMap> iterator() {
+    private double adjustOrPutValueToRow(TreeMap<Short, MutableDouble> row, short colKey, double adjustAmount, double putAmount) {
+        double newValue;
+        MutableDouble originValue = row.get(colKey);
+        if (originValue == null) {
+            row.put(colKey, new MutableDouble(putAmount));
+            newValue = putAmount;
+        } else {
+            newValue = originValue.increment(adjustAmount);
+        }
+
+        return newValue;
+    }
+
+    private boolean adjustRow(TreeMap<Short, MutableDouble> row, short colKey, double adjustAmount) {
+        MutableDouble originValue = row.get(colKey);
+        if (originValue == null) {
+            return false;
+        } else {
+            originValue.increment(adjustAmount);
+            return true;
+        }
+    }
+
+    public TLongObjectIterator<TreeMap<Short, MutableDouble>> iterator() {
         return table.iterator();
     }
 
@@ -128,12 +158,12 @@ public class TLongShortDoubleHashTable implements Serializable {
             firstLevelIter.advance();
             long featureRowKey = firstLevelIter.key();
             if (table.containsKey(featureRowKey)) {
-                TShortDoubleMap weightsRow = table.get(featureRowKey);
+                TreeMap<Short, MutableDouble> weightsRow = table.get(featureRowKey);
                 TShortDoubleMap secondLevelFeatures = firstLevelIter.value();
                 for (TShortDoubleIterator secondLevelIter = secondLevelFeatures.iterator(); secondLevelIter.hasNext(); ) {
                     secondLevelIter.advance();
                     if (weightsRow.containsKey(secondLevelIter.key())) {
-                        dotProd += secondLevelIter.value() * weightsRow.get(secondLevelIter.key());
+                        dotProd += secondLevelIter.value() * weightsRow.get(secondLevelIter.key()).get();
                     }
                 }
             }
@@ -142,12 +172,12 @@ public class TLongShortDoubleHashTable implements Serializable {
     }
 
     public void multiplyBy(double weight) {
-        for (TLongObjectIterator<TShortDoubleMap> firstLevelIter = table.iterator(); firstLevelIter.hasNext(); ) {
+        for (TLongObjectIterator<TreeMap<Short, MutableDouble>> firstLevelIter = table.iterator(); firstLevelIter.hasNext(); ) {
             firstLevelIter.advance();
-            TShortDoubleMap row = firstLevelIter.value();
-            for (TShortDoubleIterator rowIter = row.iterator(); rowIter.hasNext(); ) {
-                rowIter.advance();
-                rowIter.setValue(rowIter.value() * weight);
+            TreeMap<Short, MutableDouble> row = firstLevelIter.value();
+
+            for (Map.Entry<Short, MutableDouble> entry : row.entrySet()) {
+                entry.getValue().multiply(weight);
             }
         }
     }
@@ -157,20 +187,19 @@ public class TLongShortDoubleHashTable implements Serializable {
             firstLevelIter.advance();
             long featureRowKey = firstLevelIter.key();
             if (table.containsKey(featureRowKey)) {
-                TShortDoubleMap weightsRow = table.get(featureRowKey);
+                TreeMap<Short, MutableDouble> weightsRow = table.get(featureRowKey);
                 for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
                     secondLevelIter.advance();
-                    weightsRow.adjustOrPutValue(secondLevelIter.key(), -secondLevelIter.value(), -secondLevelIter.value());
+                    adjustOrPutValueToRow(weightsRow, secondLevelIter.key(), -secondLevelIter.value(), -secondLevelIter.value());
                 }
             } else {
                 for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
                     secondLevelIter.advance();
-                    TShortDoubleMap newMap = new TShortDoubleHashMap();
-                    newMap.put(secondLevelIter.key(), -secondLevelIter.value());
+                    TreeMap<Short, MutableDouble> newMap = new TreeMap<>();
+                    newMap.put(secondLevelIter.key(), new MutableDouble(-secondLevelIter.value()));
                     table.put(featureRowKey, newMap);
                 }
             }
         }
     }
-
 }
