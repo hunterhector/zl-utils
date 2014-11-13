@@ -27,6 +27,10 @@ public class BitUtils {
 
         int x = rand.nextInt();
         int y = rand.nextInt();
+
+        x = 46;
+        y = 5;
+
         System.out.println(x + " " + y);
 
         long l = store2Int(x, y);

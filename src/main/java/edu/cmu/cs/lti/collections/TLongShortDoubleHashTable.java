@@ -1,10 +1,14 @@
 package edu.cmu.cs.lti.collections;
 
+import edu.cmu.cs.lti.utils.BitUtils;
 import gnu.trove.iterator.TLongObjectIterator;
 import gnu.trove.iterator.TShortDoubleIterator;
 import gnu.trove.map.TShortDoubleMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
 import gnu.trove.map.hash.TShortDoubleHashMap;
+import org.apache.commons.lang3.tuple.Pair;
+
+import java.io.Serializable;
 
 /**
  * Created with ShortelliJ IDEA.
@@ -12,11 +16,26 @@ import gnu.trove.map.hash.TShortDoubleHashMap;
  * Date: 11/11/14
  * Time: 3:49 PM
  */
-public class TLongShortDoubleHashTable {
+public class TLongShortDoubleHashTable implements Serializable {
+    private static final long serialVersionUID = 6390995626236546140L;
     TLongObjectHashMap<TShortDoubleMap> table = new TLongObjectHashMap<>();
 
     public TLongShortDoubleHashTable() {
 
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        String sep = "";
+        for (long key : table.keys()) {
+            sb.append(sep);
+            sep = " ; ";
+            Pair<Integer, Integer> keyPair = BitUtils.get2IntFromLong(key);
+            sb.append(keyPair.toString());
+        }
+
+        return String.format("Features: lexical item , %s", sb.toString());
     }
 
     public int getNumRows() {
