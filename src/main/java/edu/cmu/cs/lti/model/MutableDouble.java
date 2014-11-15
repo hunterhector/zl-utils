@@ -29,4 +29,12 @@ public class MutableDouble implements Serializable {
     public double get() {
         return value;
     }
+
+    public String toString() {
+        return Double.toString(value);
+    }
+
+    public String format(String format) {
+        return String.format(format, value);
+    }
 }
