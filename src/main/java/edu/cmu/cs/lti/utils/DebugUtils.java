@@ -1,5 +1,6 @@
 package edu.cmu.cs.lti.utils;
 
+import java.util.Scanner;
 import java.util.logging.Logger;
 
 /**
@@ -8,7 +9,7 @@ import java.util.logging.Logger;
  * Date: 11/20/14
  * Time: 3:43 PM
  */
-public class GeneralUtils {
+public class DebugUtils {
     public static void printMemInfo(Logger logger) {
         printMemInfo(logger, "");
     }
@@ -26,5 +27,11 @@ public class GeneralUtils {
         double heapFreeSize = Runtime.getRuntime().freeMemory() / (double) (1024 * 1024);
 
         logger.info(String.format("%s. Heap size: %.2f MB, Max Heap Size: %.2f MB, Free Heap Size: %.2f MB, Used Memory: %.2f MB", msg, heapSize, heapMaxSize, heapFreeSize, heapSize - heapFreeSize));
+    }
+
+    public static void pause() {
+        Scanner in = new Scanner(System.in);
+        System.out.println("Enter to continue");
+        in.nextLine();
     }
 }

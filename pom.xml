@@ -23,7 +23,6 @@
     <artifactId>zl-utils</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-
     <dependencies>
         <dependency>
             <groupId>net.sf.trove4j</groupId>
