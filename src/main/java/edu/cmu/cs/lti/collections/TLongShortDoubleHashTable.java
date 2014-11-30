@@ -9,6 +9,7 @@ import gnu.trove.map.hash.TShortDoubleHashMap;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Created with ShortelliJ IDEA.
@@ -35,7 +36,29 @@ public class TLongShortDoubleHashTable implements Serializable {
             sb.append(keyPair.toString());
         }
 
-        return String.format("Features: lexical item , %s", sb.toString());
+        return String.format("keys: %s", sb.toString());
+    }
+
+    public String dump(String[] keyMap, Map<Short, String> secondKeyMap) {
+        StringBuilder sb = new StringBuilder();
+        String sep = "";
+        for (TLongObjectIterator<TShortDoubleMap> iter = table.iterator(); iter.hasNext(); ) {
+            iter.advance();
+            long key = iter.key();
+            sb.append(sep);
+            sep = " ; ";
+            Pair<Integer, Integer> keyPair = BitUtils.get2IntFromLong(key);
+            sb.append(keyMap[keyPair.getLeft()]).append(",").append(keyMap[keyPair.getRight()]).append("\n");
+
+            for (TShortDoubleIterator secondIter = iter.value().iterator(); secondIter.hasNext(); ) {
+                secondIter.advance();
+                short secondKey = secondIter.key();
+                String secondKeyName = secondKeyMap.get(secondKey);
+                sb.append("\t").append(secondKeyName).append(":").append(secondIter.value()).append("\n");
+            }
+        }
+
+        return String.format("Two-level map:\n %s", sb.toString());
     }
 
     public int getNumRows() {
