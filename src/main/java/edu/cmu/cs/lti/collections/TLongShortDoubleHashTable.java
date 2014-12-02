@@ -54,7 +54,7 @@ public class TLongShortDoubleHashTable implements Serializable {
                 secondIter.advance();
                 short secondKey = secondIter.key();
                 String secondKeyName = secondKeyMap.get(secondKey);
-                sb.append("\t").append(secondKeyName).append(":").append(secondIter.value()).append("\n");
+                sb.append("\t").append(secondKey).append(". ").append(secondKeyName).append(":").append(secondIter.value()).append("\n");
             }
         }
 
