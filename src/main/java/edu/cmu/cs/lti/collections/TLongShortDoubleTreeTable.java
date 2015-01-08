@@ -182,24 +182,46 @@ public class TLongShortDoubleTreeTable implements Serializable {
         }
     }
 
-    public void minusBy(TLongShortDoubleHashTable minusVec) {
-        for (TLongObjectIterator<TShortDoubleMap> firstLevelIter = minusVec.iterator(); firstLevelIter.hasNext(); ) {
+    public void adjustBy(TLongShortDoubleHashTable adjustVec, double mul) {
+        for (TLongObjectIterator<TShortDoubleMap> firstLevelIter = adjustVec.iterator(); firstLevelIter.hasNext(); ) {
             firstLevelIter.advance();
             long featureRowKey = firstLevelIter.key();
             if (table.containsKey(featureRowKey)) {
                 TreeMap<Short, MutableDouble> weightsRow = table.get(featureRowKey);
                 for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
                     secondLevelIter.advance();
-                    adjustOrPutValueToRow(weightsRow, secondLevelIter.key(), -secondLevelIter.value(), -secondLevelIter.value());
+                    adjustOrPutValueToRow(weightsRow, secondLevelIter.key(), -secondLevelIter.value(), secondLevelIter.value() * mul);
                 }
             } else {
                 for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
                     secondLevelIter.advance();
                     TreeMap<Short, MutableDouble> newMap = new TreeMap<>();
-                    newMap.put(secondLevelIter.key(), new MutableDouble(-secondLevelIter.value()));
+                    newMap.put(secondLevelIter.key(), new MutableDouble(secondLevelIter.value() * mul));
                     table.put(featureRowKey, newMap);
                 }
             }
         }
+    }
+
+    public void minusBy(TLongShortDoubleHashTable minusVec) {
+//        for (TLongObjectIterator<TShortDoubleMap> firstLevelIter = minusVec.iterator(); firstLevelIter.hasNext(); ) {
+//            firstLevelIter.advance();
+//            long featureRowKey = firstLevelIter.key();
+//            if (table.containsKey(featureRowKey)) {
+//                TreeMap<Short, MutableDouble> weightsRow = table.get(featureRowKey);
+//                for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
+//                    secondLevelIter.advance();
+//                    adjustOrPutValueToRow(weightsRow, secondLevelIter.key(), -secondLevelIter.value(), -secondLevelIter.value());
+//                }
+//            } else {
+//                for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
+//                    secondLevelIter.advance();
+//                    TreeMap<Short, MutableDouble> newMap = new TreeMap<>();
+//                    newMap.put(secondLevelIter.key(), new MutableDouble(-secondLevelIter.value()));
+//                    table.put(featureRowKey, newMap);
+//                }
+//            }
+//        }
+        adjustBy(minusVec, -1);
     }
 }
