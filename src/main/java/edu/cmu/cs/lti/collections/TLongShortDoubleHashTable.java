@@ -175,6 +175,27 @@ public class TLongShortDoubleHashTable implements Serializable {
         }
     }
 
+    public void adjustBy(TLongShortDoubleHashTable adjustVec, double mul) {
+        for (TLongObjectIterator<TShortDoubleMap> firstLevelIter = adjustVec.iterator(); firstLevelIter.hasNext(); ) {
+            firstLevelIter.advance();
+            long featureRowKey = firstLevelIter.key();
+            if (table.containsKey(featureRowKey)) {
+                TShortDoubleMap weightsRow = table.get(featureRowKey);
+                for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
+                    secondLevelIter.advance();
+                    weightsRow.adjustOrPutValue(secondLevelIter.key(), secondLevelIter.value() * mul, -secondLevelIter.value() * mul);
+                }
+            } else {
+                for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
+                    secondLevelIter.advance();
+                    TShortDoubleMap newMap = new TShortDoubleHashMap();
+                    newMap.put(secondLevelIter.key(), -secondLevelIter.value() * mul);
+                    table.put(featureRowKey, newMap);
+                }
+            }
+        }
+    }
+
     public void minusBy(TLongShortDoubleHashTable minusVec) {
         for (TLongObjectIterator<TShortDoubleMap> firstLevelIter = minusVec.iterator(); firstLevelIter.hasNext(); ) {
             firstLevelIter.advance();
