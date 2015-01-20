@@ -186,35 +186,18 @@ public class TLongShortDoubleHashTable implements Serializable {
                     weightsRow.adjustOrPutValue(secondLevelIter.key(), secondLevelIter.value() * mul, -secondLevelIter.value() * mul);
                 }
             } else {
+                TShortDoubleMap newMap = new TShortDoubleHashMap();
+                table.put(featureRowKey, newMap);
+
                 for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
                     secondLevelIter.advance();
-                    TShortDoubleMap newMap = new TShortDoubleHashMap();
                     newMap.put(secondLevelIter.key(), -secondLevelIter.value() * mul);
-                    table.put(featureRowKey, newMap);
                 }
             }
         }
     }
 
     public void minusBy(TLongShortDoubleHashTable minusVec) {
-        for (TLongObjectIterator<TShortDoubleMap> firstLevelIter = minusVec.iterator(); firstLevelIter.hasNext(); ) {
-            firstLevelIter.advance();
-            long featureRowKey = firstLevelIter.key();
-            if (table.containsKey(featureRowKey)) {
-                TShortDoubleMap weightsRow = table.get(featureRowKey);
-                for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
-                    secondLevelIter.advance();
-                    weightsRow.adjustOrPutValue(secondLevelIter.key(), -secondLevelIter.value(), -secondLevelIter.value());
-                }
-            } else {
-                for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
-                    secondLevelIter.advance();
-                    TShortDoubleMap newMap = new TShortDoubleHashMap();
-                    newMap.put(secondLevelIter.key(), -secondLevelIter.value());
-                    table.put(featureRowKey, newMap);
-                }
-            }
-        }
+        adjustBy(minusVec, -1);
     }
-
 }
