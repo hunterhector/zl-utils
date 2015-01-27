@@ -183,7 +183,7 @@ public class TLongShortDoubleHashTable implements Serializable {
                 TShortDoubleMap weightsRow = table.get(featureRowKey);
                 for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
                     secondLevelIter.advance();
-                    weightsRow.adjustOrPutValue(secondLevelIter.key(), secondLevelIter.value() * mul, -secondLevelIter.value() * mul);
+                    weightsRow.adjustOrPutValue(secondLevelIter.key(), secondLevelIter.value() * mul, secondLevelIter.value() * mul);
                 }
             } else {
                 TShortDoubleMap newMap = new TShortDoubleHashMap();
@@ -191,7 +191,7 @@ public class TLongShortDoubleHashTable implements Serializable {
 
                 for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
                     secondLevelIter.advance();
-                    newMap.put(secondLevelIter.key(), -secondLevelIter.value() * mul);
+                    newMap.put(secondLevelIter.key(), secondLevelIter.value() * mul);
                 }
             }
         }
