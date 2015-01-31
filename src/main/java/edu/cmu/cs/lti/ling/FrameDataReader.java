@@ -3,16 +3,27 @@
  */
 package edu.cmu.cs.lti.ling;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import org.apache.commons.io.FileUtils;
 import org.javatuples.Pair;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.Namespace;
 import org.jdom2.input.SAXBuilder;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -234,4 +245,88 @@ public class FrameDataReader {
 
         return frameRelationMappings;
     }
+
+    public static String getFrameFromPropBankSense(String propBankSense, Map<String, String> pb2Vn, Map<String, String> vn2Fn) {
+        if (propBankSense == null) {
+            return null;
+        }
+        String vnFrame = pb2Vn.get(propBankSense);
+        if (vnFrame != null) {
+            return vn2Fn.get(vnFrame);
+        }
+        return null;
+    }
+
+    public static ArrayListMultimap<String, String> getFrame2Lexicon(String frameDirPath) throws IOException, ParserConfigurationException, SAXException {
+        String[] frameDataExtensions = {"xml"};
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+
+        ArrayListMultimap<String, String> frame2PostaggedLemma = ArrayListMultimap.create();
+
+        for (File frameFile : FileUtils.listFiles(new File(frameDirPath), frameDataExtensions, true)) {
+            org.w3c.dom.Document doc = builder.parse(frameFile);
+
+            org.w3c.dom.Element root = doc.getDocumentElement();
+            String frameName = root.getAttribute("name");
+
+            NodeList lexUnits = doc.getElementsByTagName("lexUnit");
+            for (int i = 0; i < lexUnits.getLength(); i++) {
+                Node lexUnit = lexUnits.item(i);
+                NodeList lexUnitContents = lexUnit.getChildNodes();
+                for (int j = 0; j < lexUnitContents.getLength(); j++) {
+                    Node lexUnitContent = lexUnitContents.item(j);
+                    if (lexUnitContent.getNodeName().equals("lexeme")) {
+                        NamedNodeMap lexeme = lexUnitContent.getAttributes();
+                        String pos = lexeme.getNamedItem("POS").getNodeValue();
+                        String lemma = lexeme.getNamedItem("name").getNodeValue();
+
+                        frame2PostaggedLemma.put(frameName, lemma + "." + pos);
+                    }
+                }
+            }
+        }
+        return frame2PostaggedLemma;
+    }
+
+    public static ArrayListMultimap<String, String> getLexicon2Frame(String frameDirPath) throws IOException, ParserConfigurationException, SAXException {
+        String[] frameDataExtensions = {"xml"};
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+
+        ArrayListMultimap<String, String> postaggedLemma2Frames = ArrayListMultimap.create();
+
+        for (File frameFile : FileUtils.listFiles(new File(frameDirPath), frameDataExtensions, true)) {
+            org.w3c.dom.Document doc = builder.parse(frameFile);
+
+            org.w3c.dom.Element root = doc.getDocumentElement();
+            String frameName = root.getAttribute("name");
+
+            NodeList lexUnits = doc.getElementsByTagName("lexUnit");
+            for (int i = 0; i < lexUnits.getLength(); i++) {
+                Node lexUnit = lexUnits.item(i);
+                NodeList lexUnitContents = lexUnit.getChildNodes();
+                for (int j = 0; j < lexUnitContents.getLength(); j++) {
+                    Node lexUnitContent = lexUnitContents.item(j);
+                    if (lexUnitContent.getNodeName().equals("lexeme")) {
+                        NamedNodeMap lexeme = lexUnitContent.getAttributes();
+                        String pos = lexeme.getNamedItem("POS").getNodeValue();
+                        String lemma = lexeme.getNamedItem("name").getNodeValue();
+                        postaggedLemma2Frames.put(lemma + "." + pos, frameName);
+                    }
+                }
+            }
+        }
+        return postaggedLemma2Frames;
+    }
+
+
+    public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
+        ArrayListMultimap<String, String> frameLexicon =
+                getFrame2Lexicon("/Users/zhengzhongliu/Documents/projects/cmu-script/data/resources/fndata-1.5/frame");
+        for (Map.Entry<String, Collection<String>> frameLexiconEntry : frameLexicon.asMap().entrySet()) {
+            System.out.println(String.format("Frame %s, lexical items: %s", frameLexiconEntry.getKey(), frameLexiconEntry.getValue()));
+        }
+    }
+
 }
