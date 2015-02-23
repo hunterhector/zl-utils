@@ -48,7 +48,11 @@ public class TLongShortDoubleHashTable implements Serializable {
             sb.append(sep);
             sep = " ; ";
             Pair<Integer, Integer> keyPair = BitUtils.get2IntFromLong(key);
-            sb.append(keyMap[keyPair.getLeft()]).append(",").append(keyMap[keyPair.getRight()]).append("\n");
+
+            String leftKey = keyPair.getLeft() < keyMap.length ? keyMap[keyPair.getLeft()] : "-";
+            String rightKey = keyPair.getRight() < keyMap.length ? keyMap[keyPair.getRight()] : "-";
+
+            sb.append(leftKey).append(",").append(rightKey).append("\n");
 
             for (TShortDoubleIterator secondIter = iter.value().iterator(); secondIter.hasNext(); ) {
                 secondIter.advance();
