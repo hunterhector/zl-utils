@@ -1,8 +1,15 @@
 package edu.cmu.cs.lti.collections;
 
+import edu.cmu.cs.lti.utils.BitUtils;
+import gnu.trove.iterator.TIntDoubleIterator;
+import gnu.trove.iterator.TLongObjectIterator;
 import gnu.trove.map.TIntDoubleMap;
 import gnu.trove.map.hash.TIntDoubleHashMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
+import org.apache.commons.lang3.tuple.Pair;
+
+import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -10,11 +17,56 @@ import gnu.trove.map.hash.TLongObjectHashMap;
  * Date: 11/11/14
  * Time: 3:49 PM
  */
-public class TLongIntDoubleHashTable {
+public class TLongIntDoubleHashTable implements Serializable {
+    private static final long serialVersionUID = 6390995626236546140L;
     TLongObjectHashMap<TIntDoubleMap> table = new TLongObjectHashMap<>();
 
     public TLongIntDoubleHashTable() {
 
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        String sep = "";
+        for (long key : table.keys()) {
+            sb.append(sep);
+            sep = " ; ";
+            Pair<Integer, Integer> keyPair = BitUtils.get2IntFromLong(key);
+            sb.append(keyPair.toString());
+        }
+
+        return String.format("keys: %s", sb.toString());
+    }
+
+    public String dump(String[] keyMap, Map<Integer, String> secondKeyMap) {
+        StringBuilder sb = new StringBuilder();
+        String sep = "";
+        for (TLongObjectIterator<TIntDoubleMap> iter = table.iterator(); iter.hasNext(); ) {
+            iter.advance();
+            long key = iter.key();
+            sb.append(sep);
+            sep = " ; ";
+            Pair<Integer, Integer> keyPair = BitUtils.get2IntFromLong(key);
+
+            String leftKey = keyPair.getLeft() < keyMap.length ? keyMap[keyPair.getLeft()] : "-";
+            String rightKey = keyPair.getRight() < keyMap.length ? keyMap[keyPair.getRight()] : "-";
+
+            sb.append(leftKey).append(",").append(rightKey).append("\n");
+
+            for (TIntDoubleIterator secondIter = iter.value().iterator(); secondIter.hasNext(); ) {
+                secondIter.advance();
+                int secondKey = secondIter.key();
+                String secondKeyName = secondKeyMap.get(secondKey);
+                sb.append("\t").append(secondKey).append(". ").append(secondKeyName).append(":").append(secondIter.value()).append("\n");
+            }
+        }
+
+        return String.format("Two-level map:\n %s", sb.toString());
+    }
+
+    public int getNumRows() {
+        return table.size();
     }
 
     /**
@@ -34,6 +86,10 @@ public class TLongIntDoubleHashTable {
             }
         }
         return null;
+    }
+
+    public TIntDoubleMap getRow(long rowKey) {
+        return table.get(rowKey);
     }
 
     public void put(long rowKey, int colKey, double value) {
@@ -80,6 +136,70 @@ public class TLongIntDoubleHashTable {
             table.put(rowKey, row);
         }
         return newValue;
+    }
+
+    public TLongObjectIterator<TIntDoubleMap> iterator() {
+        return table.iterator();
+    }
+
+    public void clear() {
+        table.clear();
+    }
+
+    public double dotProd(TLongIntDoubleHashTable features) {
+        double dotProd = 0;
+        for (TLongObjectIterator<TIntDoubleMap> firstLevelIter = features.iterator(); firstLevelIter.hasNext(); ) {
+            firstLevelIter.advance();
+            long featureRowKey = firstLevelIter.key();
+            if (table.containsKey(featureRowKey)) {
+                TIntDoubleMap weightsRow = table.get(featureRowKey);
+                TIntDoubleMap secondLevelFeatures = firstLevelIter.value();
+                for (TIntDoubleIterator secondLevelIter = secondLevelFeatures.iterator(); secondLevelIter.hasNext(); ) {
+                    secondLevelIter.advance();
+                    if (weightsRow.containsKey(secondLevelIter.key())) {
+                        dotProd += secondLevelIter.value() * weightsRow.get(secondLevelIter.key());
+                    }
+                }
+            }
+        }
+        return dotProd;
+    }
+
+    public void multiplyBy(double weight) {
+        for (TLongObjectIterator<TIntDoubleMap> firstLevelIter = table.iterator(); firstLevelIter.hasNext(); ) {
+            firstLevelIter.advance();
+            TIntDoubleMap row = firstLevelIter.value();
+            for (TIntDoubleIterator rowIter = row.iterator(); rowIter.hasNext(); ) {
+                rowIter.advance();
+                rowIter.setValue(rowIter.value() * weight);
+            }
+        }
+    }
+
+    public void adjustBy(TLongIntDoubleHashTable adjustVec, double mul) {
+        for (TLongObjectIterator<TIntDoubleMap> firstLevelIter = adjustVec.iterator(); firstLevelIter.hasNext(); ) {
+            firstLevelIter.advance();
+            long featureRowKey = firstLevelIter.key();
+            if (table.containsKey(featureRowKey)) {
+                TIntDoubleMap weightsRow = table.get(featureRowKey);
+                for (TIntDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
+                    secondLevelIter.advance();
+                    weightsRow.adjustOrPutValue(secondLevelIter.key(), secondLevelIter.value() * mul, secondLevelIter.value() * mul);
+                }
+            } else {
+                TIntDoubleMap newMap = new TIntDoubleHashMap();
+                table.put(featureRowKey, newMap);
+
+                for (TIntDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
+                    secondLevelIter.advance();
+                    newMap.put(secondLevelIter.key(), secondLevelIter.value() * mul);
+                }
+            }
+        }
+    }
+
+    public void minusBy(TLongIntDoubleHashTable minusVec) {
+        adjustBy(minusVec, -1);
     }
 
 }
