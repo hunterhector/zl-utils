@@ -317,6 +317,7 @@ public class FrameDataReader {
                 }
             }
         }
+
         return postaggedLemma2Frames;
     }
 

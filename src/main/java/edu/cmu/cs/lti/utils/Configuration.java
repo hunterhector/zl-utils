@@ -20,6 +20,10 @@ public class Configuration {
     private Properties properties;
 
 
+    public Configuration(String configurationFilePath) throws IOException {
+        this(new File(configurationFilePath));
+    }
+
     public Configuration(File configurationFile) throws IOException {
         configFile = configurationFile;
         if (!configFile.exists()) {
@@ -35,9 +39,7 @@ public class Configuration {
         if (value == null) {
             try {
                 throw new ConfigurationException(key + " not specified in " + configFile.getCanonicalPath());
-            } catch (ConfigurationException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
+            } catch (ConfigurationException | IOException e) {
                 e.printStackTrace();
             }
         }
@@ -64,7 +66,7 @@ public class Configuration {
     public int getInt(String key) {
         String value = get(key);
         if (value == null) {
-            return 1;
+            return -1;
         }
         return Integer.parseInt(value);
     }

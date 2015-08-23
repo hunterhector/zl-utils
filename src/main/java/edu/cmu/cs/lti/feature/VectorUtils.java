@@ -81,36 +81,33 @@ public class VectorUtils {
     }
 
     public static TObjectDoubleMap<String> weightedSum
-            (TObjectDoubleMap<String> v1, TObjectDoubleMap<String> v2,
-             double v1Weight, double v2Weight) {
-        TObjectDoubleMap<String> result = new TObjectDoubleHashMap<>();
+            (TObjectDoubleMap<String> v1, final TObjectDoubleMap<String> v2,
+             final double v1Weight, final double v2Weight) {
+        final TObjectDoubleMap<String> result = new TObjectDoubleHashMap<>();
+        Set<String> usedKey = new HashSet<>();
 
-        Set<String> v2Used = new HashSet<>();
-
-        for (TObjectDoubleIterator<String> it = v1.iterator(); it.hasNext(); ) {
-            it.advance();
-            if (v2.containsKey(it.key())) {
-                v2.remove(it.key());
-                double value = it.value() * v1Weight + v2.get(it.key()) * v2Weight;
+        v1.forEachEntry((a, b) -> {
+            if (v2.containsKey(a)) {
+                double value = b * v1Weight + v2.get(a) * v2Weight;
                 if (value != 0) {
-                    result.put(it.key(), it.value());
+                    result.put(a, value);
                 }
-                v2Used.add(it.key());
+                usedKey.add(a);
             }
-        }
+            return true;
+        });
 
-        for (TObjectDoubleIterator<String> it = v2.iterator(); it.hasNext(); ) {
-            it.advance();
-            if (!v2Used.contains(it.key())) {
-                result.put(it.key(), +it.value() * v2Weight);
+        v2.forEachEntry((a, b) -> {
+            if (!usedKey.contains(a)) {
+                result.put(a, b * v2Weight);
             }
-        }
-
+            return true;
+        });
         return result;
     }
 
-    public static double vectorL2Sq(TObjectDoubleMap<String> v){
-        return dotProd(v,v);
+    public static double vectorL2Sq(TObjectDoubleMap<String> v) {
+        return dotProd(v, v);
     }
 
     public static double vectorL2(TObjectDoubleMap<String> v) {
