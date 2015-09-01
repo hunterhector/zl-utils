@@ -1,9 +1,10 @@
 package edu.cmu.cs.lti.learning.model;
 
+import org.apache.commons.lang3.SerializationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Serializable;
+import java.io.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -21,7 +22,7 @@ public class AveragedWeightVector implements Serializable {
     double[] averagedWeights;
     int updateCounts;
 
-    boolean isReady;
+    boolean consolidated;
 
     public AveragedWeightVector(int featureSize) {
         weights = new double[featureSize];
@@ -30,10 +31,6 @@ public class AveragedWeightVector implements Serializable {
     }
 
     public void updateWeightsBy(HashedFeatureVector fv, double multiplier) {
-        if (isReady) {
-            throw new IllegalStateException("Model is consolidated, weights cannot be updated.");
-        }
-
         for (HashedFeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
             iter.next();
             int index = iter.featureIndex();
@@ -43,14 +40,23 @@ public class AveragedWeightVector implements Serializable {
         updateCounts++;
     }
 
-    public void consolidate() {
-        for (int i = 0; i < averagedWeights.length; i++) {
-            averagedWeights[i] /= updateCounts;
+    public void write(File outputFile) throws FileNotFoundException {
+        if (!consolidated) {
+            consolidate();
+            SerializationUtils.serialize(this, new FileOutputStream(outputFile));
         }
-        isReady = true;
     }
 
     public double dotProd(HashedFeatureVector fv) {
+        double sum = 0;
+        for (HashedFeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
+            iter.next();
+            sum += weights[iter.featureIndex()] * iter.featureValue();
+        }
+        return sum;
+    }
+
+    public double dotProdAver(HashedFeatureVector fv) {
         double sum = 0;
         for (HashedFeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
             iter.next();
@@ -59,8 +65,23 @@ public class AveragedWeightVector implements Serializable {
         return sum;
     }
 
-    public boolean isReady() {
-        return isReady;
+    private void consolidate() {
+        for (int i = 0; i < averagedWeights.length; i++) {
+            averagedWeights[i] /= updateCounts;
+        }
+        consolidated = true;
+    }
+
+    private void deconsolidate() {
+        for (int i = 0; i < averagedWeights.length; i++) {
+            averagedWeights[i] *= updateCounts;
+        }
+        consolidated = false;
+    }
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        deconsolidate();
     }
 
 }

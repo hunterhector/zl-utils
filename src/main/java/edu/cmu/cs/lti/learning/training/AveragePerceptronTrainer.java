@@ -2,13 +2,11 @@ package edu.cmu.cs.lti.learning.training;
 
 import edu.cmu.cs.lti.learning.cache.CrfState;
 import edu.cmu.cs.lti.learning.model.*;
-import org.apache.commons.lang3.SerializationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 
 /**
  * Created with IntelliJ IDEA.
@@ -73,14 +71,7 @@ public class AveragePerceptronTrainer {
 //        averagedWeightVector.updateWeightsBy(predictedFv, -stepSize);
     }
 
-    public void consolidate() {
-        averagedWeightVector.consolidate();
-    }
-
     public void write(File outputFile) throws FileNotFoundException {
-        if (!averagedWeightVector.isReady()) {
-            consolidate();
-        }
-        SerializationUtils.serialize(averagedWeightVector, new FileOutputStream(outputFile));
+        averagedWeightVector.write(outputFile);
     }
 }
