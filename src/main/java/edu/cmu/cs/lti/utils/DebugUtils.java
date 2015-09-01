@@ -1,6 +1,5 @@
 package edu.cmu.cs.lti.utils;
 
-import java.util.Scanner;
 import java.util.logging.Logger;
 
 /**
@@ -26,12 +25,15 @@ public class DebugUtils {
         // after garbage collection and decrease as new objects are created.
         double heapFreeSize = Runtime.getRuntime().freeMemory() / (double) (1024 * 1024);
 
-        logger.info(String.format("%s. Heap size: %.2f MB, Max Heap Size: %.2f MB, Free Heap Size: %.2f MB, Used Memory: %.2f MB", msg, heapSize, heapMaxSize, heapFreeSize, heapSize - heapFreeSize));
+        logger.info(String.format("%s. Heap size: %.2f MB, Max Heap Size: %.2f MB, Free Heap Size: %.2f MB, Used " +
+                "Memory: %.2f MB", msg, heapSize, heapMaxSize, heapFreeSize, heapSize - heapFreeSize));
     }
 
     public static void pause() {
-        Scanner in = new Scanner(System.in);
-        System.out.println("Enter to continue");
-        in.nextLine();
+        System.out.println("Press enter to continue...");
+        try {
+            System.in.read();
+        } catch (Exception e) {
+        }
     }
 }

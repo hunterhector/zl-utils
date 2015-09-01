@@ -1,6 +1,5 @@
 package edu.cmu.cs.lti.utils;
 
-import javax.naming.ConfigurationException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -35,22 +34,9 @@ public class Configuration {
 
     public String getOrElse(String key, String defaultValue) {
         String value = properties.getProperty(key, defaultValue);
-
         if (value == null) {
-            try {
-                throw new ConfigurationException(key + " not specified in " + configFile.getCanonicalPath());
-            } catch (ConfigurationException | IOException e) {
-                e.printStackTrace();
-            }
+            return defaultValue;
         }
-        value = value.trim();
-        if (key.endsWith(".dir")) {
-            if (!value.endsWith("/")) {
-                value += "/";
-            }
-        }
-
-
         return value;
     }
 
@@ -58,17 +44,34 @@ public class Configuration {
         return getOrElse(key, null);
     }
 
-    public boolean getBoolean(String key) {
-        String value = getOrElse(key, "true");
+    public boolean getBoolean(String key, boolean defaultVal) {
+        String value = getOrElse(key, null);
+        if (value == null) {
+            return defaultVal;
+        }
         return value.equals("true");
     }
 
-    public int getInt(String key) {
+    public int getInt(String key, int defaultVal) {
         String value = get(key);
         if (value == null) {
-            return -1;
+            return defaultVal;
         }
         return Integer.parseInt(value);
+    }
+
+    public double getDouble(String key, double defaultVal) {
+        String val = get(key);
+        if (val != null) {
+            return Double.parseDouble(get(key));
+        } else {
+            return defaultVal;
+        }
+    }
+
+    public File getFile(String key) {
+        String val = get(key);
+        return new File(val);
     }
 
     public String[] getList(String key) {

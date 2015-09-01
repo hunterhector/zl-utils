@@ -1,5 +1,11 @@
 package edu.cmu.cs.lti.learning.model;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 /**
  * Created with IntelliJ IDEA.
  * Date: 8/21/15
@@ -8,23 +14,23 @@ package edu.cmu.cs.lti.learning.model;
  * @author Zhengzhong Liu
  */
 public class SequenceSolution extends Solution {
-    ClassAlphabet classAlphabet;
-    int sequenceLength;
-    int[] solution;
-    double[] previousColumnScores;
-    double[] currColumnScores;
-    int[][] backPointers;
+    private static final long serialVersionUID = 4963833442738553688L;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    boolean isStart;
-    boolean solutionFilled;
+    private ClassAlphabet classAlphabet;
+    private int sequenceLength;
+    private int[] solution;
+    private double[] previousColumnScores;
+    private double[] currColumnScores;
+    private int[][] backPointers;
 
     int currentPosition;
 
     public SequenceSolution(ClassAlphabet classAlphabet, int[] sequence) {
         this.classAlphabet = classAlphabet;
         this.sequenceLength = sequence.length;
+        solution = new int[sequenceLength];
         System.arraycopy(sequence, 0, solution, 0, solution.length);
-        solutionFilled = true;
     }
 
     public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength) {
@@ -34,8 +40,6 @@ public class SequenceSolution extends Solution {
         previousColumnScores = new double[classAlphabet.size()];
         currColumnScores = new double[classAlphabet.size()];
         backPointers = new int[sequenceLength + 1][classAlphabet.size()];
-        isStart = true;
-        solutionFilled = false;
         currentPosition = -1;
     }
 
@@ -53,6 +57,8 @@ public class SequenceSolution extends Solution {
 
     public void advance() {
         ++currentPosition;
+        previousColumnScores = currColumnScores;
+        currColumnScores = new double[classAlphabet.size()];
     }
 
     public int getCurrentPosition() {
@@ -75,17 +81,42 @@ public class SequenceSolution extends Solution {
         backPointers[currentPosition][classIndex] = previousState;
     }
 
+    public String showBackpointerMap() {
+        StringBuilder sb = new StringBuilder();
+        String rowSep;
+        String colSep = "";
+        for (int[] backPointer : backPointers) {
+            sb.append(colSep);
+            colSep = "\n";
+            rowSep = "";
+            for (int aBackPointer : backPointer) {
+                sb.append(rowSep);
+                rowSep = "\t";
+                sb.append(aBackPointer);
+            }
+        }
+        return sb.toString();
+    }
+
     public void backTrace() {
         int previousClass = 0;
-        for (int backCol = sequenceLength; backCol > 0; backCol++) {
+
+        for (int backCol = sequenceLength; backCol > 0; backCol--) {
             previousClass = backPointers[backCol][previousClass];
             solution[backCol - 1] = previousClass;
         }
-        solutionFilled = true;
     }
 
     public int getSequenceLength() {
         return sequenceLength;
+    }
+
+    public String toString() {
+        return Arrays.stream(solution).mapToObj(classAlphabet::getClassName).collect(Collectors.joining(", "));
+    }
+
+    public ClassAlphabet getClassAlphabet() {
+        return classAlphabet;
     }
 
     @Override
@@ -110,5 +141,46 @@ public class SequenceSolution extends Solution {
         }
 
         return true;
+    }
+
+    @Override
+    public double loss(Solution s) {
+        if (getClass() != s.getClass())
+            throw new IllegalArgumentException("Must compare with a sequence solution.");
+
+        SequenceSolution otherSolution = (SequenceSolution) s;
+        if (otherSolution.sequenceLength != sequenceLength) {
+            throw new IllegalArgumentException("Cannot compare two solutions on difference sequences.");
+        } else {
+            int mismatch = 0;
+            int tp = 0;
+            int numGold = 0;
+            int numSys = 0;
+            for (int i = 0; i < sequenceLength; i++) {
+                int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
+                if (solution[i] != otherClass) {
+                    numGold += 1;
+                    if (otherSolution.getClassAt(i) == solution[i]) {
+                        tp += 1;
+                    }
+                }
+
+                if (otherSolution.getClassAt(i) != otherClass) {
+                    numSys += 1;
+                }
+
+                if (otherSolution.getClassAt(i) != solution[i]) {
+                    mismatch += 1;
+                }
+            }
+
+            double precision = numSys > 0 ? tp * 1.0 / numSys : 1;
+            double recall = numGold > 0 ? tp * 1.0 / numGold : 1;
+
+            double f1 = precision + recall == 0 ? 0 : 2 * precision * recall / (precision + recall);
+
+            return 1 - f1;
+//            return mismatch * 1.0 / sequenceLength;
+        }
     }
 }

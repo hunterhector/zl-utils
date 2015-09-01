@@ -1,5 +1,8 @@
 package edu.cmu.cs.lti.learning.model;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Serializable;
 
 /**
@@ -11,6 +14,8 @@ import java.io.Serializable;
  */
 public class AveragedWeightVector implements Serializable {
     private static final long serialVersionUID = 7646416117744167293L;
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     double[] weights;
     double[] averagedWeights;
@@ -28,11 +33,12 @@ public class AveragedWeightVector implements Serializable {
         if (isReady) {
             throw new IllegalStateException("Model is consolidated, weights cannot be updated.");
         }
-        for (HashedFeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); iter.next()) {
+
+        for (HashedFeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
+            iter.next();
             int index = iter.featureIndex();
             weights[index] = iter.featureValue() * multiplier;
             averagedWeights[index] += weights[index];
-
         }
         updateCounts++;
     }
@@ -45,14 +51,16 @@ public class AveragedWeightVector implements Serializable {
     }
 
     public double dotProd(HashedFeatureVector fv) {
-        if (!isReady) {
-            throw new IllegalStateException("Model is not finalized, run consolidate() before using");
-        }
         double sum = 0;
-        for (HashedFeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); iter.next()) {
+        for (HashedFeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
+            iter.next();
             sum += averagedWeights[iter.featureIndex()] * iter.featureValue();
         }
         return sum;
+    }
+
+    public boolean isReady() {
+        return isReady;
     }
 
 }

@@ -16,15 +16,15 @@ public class BinaryFeatureVector extends HashedFeatureVector {
 
     TIntIntMap fv;
 
-    public BinaryFeatureVector(int featureSize) {
-        super(featureSize);
+    public BinaryFeatureVector(Alphabet alphabet) {
+        super(alphabet);
         fv = new TIntIntHashMap();
     }
 
     @Override
-    public int addFeature(int featureIndex, double featureValue) {
-        fv.adjustOrPutValue(featureIndex, 1, 1);
-        return featureIndex;
+    public boolean addFeature(int featureIndex, double featureValue) {
+        int adjustedValue = fv.adjustOrPutValue(featureIndex, 1, 1);
+        return adjustedValue == featureValue;
     }
 
     @Override

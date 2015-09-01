@@ -23,9 +23,9 @@ public class RealValueFeatureVector extends HashedFeatureVector {
     }
 
     @Override
-    public int addFeature(int featureIndex, double featureValue) {
-        fv.adjustOrPutValue(featureIndex, featureValue, featureValue);
-        return featureIndex;
+    public boolean addFeature(int featureIndex, double featureValue) {
+        double adjustedValue = fv.adjustOrPutValue(featureIndex, featureValue, featureValue);
+        return adjustedValue == featureValue;
     }
 
     @Override
