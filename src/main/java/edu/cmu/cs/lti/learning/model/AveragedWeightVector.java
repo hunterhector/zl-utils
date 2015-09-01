@@ -34,7 +34,7 @@ public class AveragedWeightVector implements Serializable {
         for (HashedFeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
             iter.next();
             int index = iter.featureIndex();
-            weights[index] = iter.featureValue() * multiplier;
+            weights[index] += iter.featureValue() * multiplier;
             averagedWeights[index] += weights[index];
         }
         updateCounts++;
