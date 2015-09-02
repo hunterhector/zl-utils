@@ -69,12 +69,17 @@ public class ViterbiDecoder extends SequenceDecoder {
             TObjectDoubleMap<String> featuresNoState;
             TObjectDoubleMap<String> featuresNeedForState;
 
-            TObjectDoubleMap<String>[] allBaseFeatures = cacher.getCachedFeatures(key);
+            TObjectDoubleMap<String>[] allBaseFeatures = null;
+            if (cacher != null) {
+                allBaseFeatures = cacher.getCachedFeatures(key);
+            }
             if (allBaseFeatures == null) {
                 featuresNoState = new TObjectDoubleHashMap<>();
                 featuresNeedForState = new TObjectDoubleHashMap<>();
                 extractor.extract(sequenceIndex, featuresNoState, featuresNeedForState);
-                cacher.addFeaturesToCache(key, featuresNoState, featuresNeedForState);
+                if (cacher != null) {
+                    cacher.addFeaturesToCache(key, featuresNoState, featuresNeedForState);
+                }
             } else {
                 featuresNoState = allBaseFeatures[0];
                 featuresNeedForState = allBaseFeatures[1];

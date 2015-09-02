@@ -41,10 +41,9 @@ public class AveragedWeightVector implements Serializable {
     }
 
     public void write(File outputFile) throws FileNotFoundException {
-        if (!consolidated) {
-            consolidate();
-            SerializationUtils.serialize(this, new FileOutputStream(outputFile));
-        }
+        consolidate();
+        SerializationUtils.serialize(this, new FileOutputStream(outputFile));
+        deconsolidate();
     }
 
     public double dotProd(HashedFeatureVector fv) {
@@ -66,22 +65,27 @@ public class AveragedWeightVector implements Serializable {
     }
 
     private void consolidate() {
-        for (int i = 0; i < averagedWeights.length; i++) {
-            averagedWeights[i] /= updateCounts;
+        if (!consolidated) {
+            logger.info("Consolidating weights.");
+            for (int i = 0; i < averagedWeights.length; i++) {
+                averagedWeights[i] /= updateCounts;
+            }
+            consolidated = true;
         }
-        consolidated = true;
     }
 
-    private void deconsolidate() {
-        for (int i = 0; i < averagedWeights.length; i++) {
-            averagedWeights[i] *= updateCounts;
+    public void deconsolidate() {
+        if (consolidated) {
+            logger.info("Deconsolidating weights.");
+            for (int i = 0; i < averagedWeights.length; i++) {
+                averagedWeights[i] *= updateCounts;
+            }
+            consolidated = false;
         }
-        consolidated = false;
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
-        deconsolidate();
     }
 
 }
