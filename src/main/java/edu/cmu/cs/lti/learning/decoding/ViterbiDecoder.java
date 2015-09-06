@@ -91,6 +91,8 @@ public class ViterbiDecoder extends SequenceDecoder {
                 currentFeatureVectors[i] = newFeatureVector();
             }
 
+            double bestClassLocalScore = 0;
+
             // Fill up lattice score for each of class in the current column.
             for (int classIndex = 0; classIndex < solution.getNumClasses(); classIndex++) {
                 String currentClass = classAlphabet.getClassName(classIndex);
@@ -123,6 +125,7 @@ public class ViterbiDecoder extends SequenceDecoder {
                     }
                 }
 
+
                 // Features that are labelled with current class.
                 HashedFeatureVector localStateFeatures = newFeatureVector();
                 for (TObjectDoubleIterator<String> iter = featuresNoState.iterator(); iter.hasNext(); ) {
@@ -136,9 +139,22 @@ public class ViterbiDecoder extends SequenceDecoder {
                 currentFeatureVectors[classIndex].extend(bestStateDependentFeatures);
                 currentFeatureVectors[classIndex].extend(localStateFeatures);
 
+                double locaScore = maxSequenceScoreTillHere + currentStateFeatureScore;
+
+//                logger.info(String.format("Score at %d, class %s is %.4f", sequenceIndex, currentClass, locaScore));
+                if (locaScore > bestClassLocalScore) {
+//                    logger.info(String.format("BestClass is now %s, of score %.4f", currentClass, locaScore));
+                    bestClassLocalScore = locaScore;
+//                    logger.info(localStateFeatures.readableString());
+//                    if (classIndex != classAlphabet.getNoneOfTheAboveClassIndex()) {
+//                        DebugUtils.pause();
+//                    }
+                }
+
                 solution.setCurrentScoreAt(classIndex, maxSequenceScoreTillHere + currentStateFeatureScore);
                 solution.setBackpointer(classIndex, argmaxPreviousState);
             }
+
         }
         solution.backTrace();
 
