@@ -8,6 +8,7 @@ import gnu.trove.map.hash.TObjectIntHashMap;
 import org.apache.commons.lang3.SerializationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -30,7 +31,7 @@ public class Alphabet implements Serializable {
 
 //    private TObjectIntHashMap<String> hashValueStore;
 
-    private TObjectIntMap[] featureCounters;
+    private TObjectIntMap<String>[] featureCounters;
 
     private boolean storeReadable;
 
@@ -38,30 +39,35 @@ public class Alphabet implements Serializable {
 
     private int hashMask;
 
-    public Alphabet(int alphabet_size) {
-        this(alphabet_size, false);
+    public Alphabet(int alphabetBits) {
+        this(alphabetBits, false);
     }
 
     /**
      * Create a alphabet that also stores all feature names to integer id count. This will make the training about
      * 25% slower.
      *
-     * @param alphabet_size
-     * @param storeReadable
+     * @param alphabetBits  The power of 2 of this is the alphabet size, i.e. number of bits for feature.
+     * @param storeReadable If this is true, it will create a alphabet that also stores all feature names to integer id
+     *                      count. This will make the training about25% slower.
      */
-    public Alphabet(int alphabet_size, boolean storeReadable) {
-        if (alphabet_size >= Math.pow(2, 31)) {
+    public Alphabet(int alphabetBits, boolean storeReadable) {
+        if (alphabetBits >= 31) {
             throw new IllegalArgumentException("Alphabet size exceed the power of current Murmur");
         }
+
+        int alphabetSize = (int) Math.pow(2, alphabetBits);
+
         this.storeReadable = true;
-        this.alphabetSize = alphabet_size;
-        this.hashMask = alphabet_size - 1;
-        logger.info(String.format("Feature Alphabet initialized with size %d", alphabet_size));
+        this.alphabetSize = alphabetSize;
+        this.hashMask = alphabetSize - 1;
+        logger.info(String.format("Feature Alphabet initialized with size %d", alphabetSize));
+        logger.info(String.format("Feature Mask is %s", Integer.toBinaryString(hashMask)));
 
         if (storeReadable) {
             logger.info("Alphabet will store feature name to hash value mappings.");
 //            hashValueStore = new TObjectIntHashMap<>();
-            featureCounters = new TObjectIntMap[alphabet_size];
+            featureCounters = new TObjectIntMap[alphabetSize];
         }
     }
 
@@ -84,11 +90,44 @@ public class Alphabet implements Serializable {
         return hashVal;
     }
 
-    public String getFeatureNames(int featureIndex) {
+    public String getMappedFeatureCounters(int featureIndex) {
         if (storeReadable) {
-            return featureCounters[featureIndex].toString();
+            TObjectIntMap counter = featureCounters[featureIndex];
+            if (counter == null) {
+                return null;
+            }
+            return counter.toString();
         } else {
-            return "";
+            return null;
+        }
+    }
+
+    public String[] getMappedFeatureNames(int featureIndex) {
+        if (storeReadable) {
+            TObjectIntMap<String> counter = featureCounters[featureIndex];
+            if (featureCounters[featureIndex] == null) {
+                return null;
+            }
+            return counter.keys(new String[counter.size()]);
+        } else {
+            return null;
+        }
+    }
+
+    public void computeConflictRates() {
+        if (storeReadable) {
+            int actualFeatures = 0;
+            int occupied = 0;
+            for (TObjectIntMap featureCounter : featureCounters) {
+                if (featureCounter != null) {
+                    actualFeatures += featureCounter.size();
+                    occupied += 1;
+                }
+            }
+            logger.info(String.format("Actual features : %d, actual occupied,: %d, alphabet size : %d",
+                    actualFeatures, occupied, alphabetSize));
+        } else {
+            throw new NotImplementedException();
         }
     }
 

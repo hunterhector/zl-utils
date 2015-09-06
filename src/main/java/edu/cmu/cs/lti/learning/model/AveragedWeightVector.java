@@ -18,11 +18,11 @@ public class AveragedWeightVector implements Serializable {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    double[] weights;
-    double[] averagedWeights;
-    int updateCounts;
+    private double[] weights;
+    private double[] averagedWeights;
+    private int updateCounts;
 
-    boolean consolidated;
+    private boolean consolidated;
 
     public AveragedWeightVector(int featureSize) {
         weights = new double[featureSize];
@@ -88,4 +88,15 @@ public class AveragedWeightVector implements Serializable {
         in.defaultReadObject();
     }
 
+    public double getWeightAt(int i) {
+        return weights[i];
+    }
+
+    public double getAverageWeightAt(int i) {
+        return averagedWeights[i];
+    }
+
+    public int getFeatureSize() {
+        return weights.length;
+    }
 }

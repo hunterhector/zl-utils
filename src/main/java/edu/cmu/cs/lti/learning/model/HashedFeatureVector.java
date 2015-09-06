@@ -108,7 +108,7 @@ public abstract class HashedFeatureVector implements Serializable {
         while (iter.hasNext()) {
             iter.next();
             features.append(sep);
-            features.append(String.format("%d %s : %.2f", iter.featureIndex(), alphabet.getFeatureNames(iter
+            features.append(String.format("%d %s : %.2f", iter.featureIndex(), alphabet.getMappedFeatureCounters(iter
                     .featureIndex()), iter.featureValue()));
             sep = separator;
         }
