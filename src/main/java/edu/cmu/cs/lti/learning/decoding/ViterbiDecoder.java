@@ -26,6 +26,7 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     private CrfFeatureCacher cacher;
 
+    private int kBest;
 
     public ViterbiDecoder(Alphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher) {
         this(featureAlphabet, classAlphabet, cacher, false);
@@ -33,11 +34,14 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     public ViterbiDecoder(Alphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher, boolean
             binaryFeature) {
+        this(featureAlphabet, classAlphabet, cacher, binaryFeature, 1);
+    }
+
+    public ViterbiDecoder(Alphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher, boolean
+            binaryFeature, int kBest) {
         super(featureAlphabet, classAlphabet, binaryFeature);
-        this.featureAlphabet = featureAlphabet;
-        this.classAlphabet = classAlphabet;
-        this.useBinary = binaryFeature;
         this.cacher = cacher;
+        this.kBest = kBest;
     }
 
     private HashedFeatureVector newFeatureVector() {

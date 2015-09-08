@@ -1,8 +1,5 @@
 package edu.cmu.cs.lti.learning.debug;
 
-import com.google.common.base.Charsets;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
 import edu.cmu.cs.lti.learning.model.Alphabet;
 import edu.cmu.cs.lti.learning.model.AveragedWeightVector;
 import gnu.trove.set.TIntSet;
@@ -140,35 +137,35 @@ public class HashedFeatureInspector {
 
         featureAlphabet.computeConflictRates();
 
-        HashFunction hasher = Hashing.murmur3_32();
-
-        int k = (int) Math.pow(2, 23);
-
-        System.out.println("K - 1 = " + (k - 1) + " " + Integer.toBinaryString(k - 1));
-
-        System.out.println("Testing hash dist of modulo with k");
-
-        inspector.hashDistributionTester(operand -> {
-            int v = hasher.hashString(operand, Charsets.UTF_8).asInt() % (k);
-            if (v < 0) {
-                v += k;
-            }
-            return v;
-        });
-
-        System.out.println("Testing hash dist of modulo with k-1");
-
-        inspector.hashDistributionTester(operand -> {
-            int v = hasher.hashString(operand, Charsets.UTF_8).asInt() % (k - 1);
-            if (v < 0) {
-                v += (k - 1);
-            }
-            return v;
-        });
-
-        System.out.println("Testing hash dist of AND with k-1");
-
-        inspector.hashDistributionTester(operand -> hasher.hashString(operand, Charsets.UTF_8).asInt() & (k - 1));
+//        HashFunction hasher = Hashing.murmur3_32();
+//
+//        int k = (int) Math.pow(2, 23);
+//
+//        System.out.println("K - 1 = " + (k - 1) + " " + Integer.toBinaryString(k - 1));
+//
+//        System.out.println("Testing hash dist of modulo with k");
+//
+//        inspector.hashDistributionTester(operand -> {
+//            int v = hasher.hashString(operand, Charsets.UTF_8).asInt() % (k);
+//            if (v < 0) {
+//                v += k;
+//            }
+//            return v;
+//        });
+//
+//        System.out.println("Testing hash dist of modulo with k-1");
+//
+//        inspector.hashDistributionTester(operand -> {
+//            int v = hasher.hashString(operand, Charsets.UTF_8).asInt() % (k - 1);
+//            if (v < 0) {
+//                v += (k - 1);
+//            }
+//            return v;
+//        });
+//
+//        System.out.println("Testing hash dist of AND with k-1");
+//
+//        inspector.hashDistributionTester(operand -> hasher.hashString(operand, Charsets.UTF_8).asInt() & (k - 1));
 
         inspector.writeInspects(new File(outputDirectory, "top100Aver"), inspector.loadTopKAverageFeatures(100));
         inspector.writeInspects(new File(outputDirectory, "top100Final"), inspector.loadTopKFinalFeatures(100));
