@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.stream.IntStream;
 
 /**
  * Created with IntelliJ IDEA.
@@ -44,11 +45,11 @@ public class ClassAlphabet implements Serializable {
         this.classes = new ArrayList<>();
         index = 0;
 
+        addClass(outsideClass);
+
         if (noneOfTheAbove) {
             addClass(noneOfTheAboveClass);
         }
-
-        addClass(outsideClass);
 
         for (String c : classes) {
             addClass(c);
@@ -81,7 +82,6 @@ public class ClassAlphabet implements Serializable {
         return noneOfTheAboveClass;
     }
 
-
     public int getNoneOfTheAboveClassIndex() {
         return classIndices.get(noneOfTheAboveClass);
     }
@@ -92,6 +92,14 @@ public class ClassAlphabet implements Serializable {
 
     public int getOutsideClassIndex() {
         return classIndices.get(outsideClass);
+    }
+
+    public IntStream getNormalClassesRange() {
+        return IntStream.range(1, classes.size());
+    }
+
+    public IntStream getOutsideClassRange() {
+        return IntStream.range(0, 1);
     }
 
     public void write(File outputFile) throws FileNotFoundException {

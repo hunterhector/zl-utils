@@ -9,9 +9,9 @@ import java.io.Serializable;
  *
  * @author Zhengzhong Liu
  */
-public abstract class Solution implements Comparable, Serializable{
+public abstract class Solution implements Comparable, Serializable {
     private static final long serialVersionUID = 2784520773198397612L;
-    double score = Double.NEGATIVE_INFINITY;
+    private double score = Double.NEGATIVE_INFINITY;
 
     protected void setScore(double score) {
         this.score = score;

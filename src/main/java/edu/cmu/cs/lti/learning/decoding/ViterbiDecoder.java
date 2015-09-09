@@ -7,6 +7,7 @@ import edu.cmu.cs.lti.learning.training.SequenceDecoder;
 import gnu.trove.iterator.TObjectDoubleIterator;
 import gnu.trove.map.TObjectDoubleMap;
 import gnu.trove.map.hash.TObjectDoubleHashMap;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,10 +52,10 @@ public class ViterbiDecoder extends SequenceDecoder {
     @Override
     public void decode(ChainFeatureExtractor extractor, AveragedWeightVector averagedWeightVector, int
             sequenceLength, double lagrangian, CrfState key) {
-        solution = new SequenceSolution(classAlphabet, sequenceLength);
+        solution = new SequenceSolution(classAlphabet, sequenceLength, kBest);
 
-        HashedFeatureVector[] currentFeatureVectors = new HashedFeatureVector[classAlphabet.size()];
-        HashedFeatureVector[] previousColFeatureVectors = new HashedFeatureVector[currentFeatureVectors.length];
+        final HashedFeatureVector[] currentFeatureVectors = new HashedFeatureVector[classAlphabet.size()];
+        final HashedFeatureVector[] previousColFeatureVectors = new HashedFeatureVector[classAlphabet.size()];
 
         for (int i = 0; i < currentFeatureVectors.length; i++) {
             currentFeatureVectors[i] = newFeatureVector();
@@ -62,13 +63,13 @@ public class ViterbiDecoder extends SequenceDecoder {
 
         for (; !solution.finished(); solution.advance()) {
             int sequenceIndex = solution.getCurrentPosition();
-            key.setTokenId(sequenceIndex);
-
-            // Initial start position.
             if (sequenceIndex == -1) {
-                solution.setCurrentScoreAt(0, 0);
                 continue;
             }
+
+//            logger.info("Decoding " + sequenceIndex);
+
+            key.setTokenId(sequenceIndex);
 
             TObjectDoubleMap<String> featuresNoState;
             TObjectDoubleMap<String> featuresNeedForState;
@@ -90,79 +91,78 @@ public class ViterbiDecoder extends SequenceDecoder {
             }
 
             System.arraycopy(currentFeatureVectors, 0, previousColFeatureVectors, 0, previousColFeatureVectors.length);
-            currentFeatureVectors = new HashedFeatureVector[currentFeatureVectors.length];
             for (int i = 0; i < currentFeatureVectors.length; i++) {
                 currentFeatureVectors[i] = newFeatureVector();
             }
 
-            double bestClassLocalScore = 0;
-
             // Fill up lattice score for each of class in the current column.
-            for (int classIndex = 0; classIndex < solution.getNumClasses(); classIndex++) {
+            solution.getCurrentPossibleClassIndices().forEach(classIndex -> {
+//                logger.info("Decoding class index " + classIndex);
                 String currentClass = classAlphabet.getClassName(classIndex);
 
-                double maxSequenceScoreTillHere = Double.NEGATIVE_INFINITY;
-                int argmaxPreviousState = -1;
-                HashedFeatureVector bestStateDependentFeatures = null;
-
-                // Check which previous state gives the best score.
-                // Note that only features depend on previous states will affect the results here.
-                for (int prevState = 0; prevState < classAlphabet.size(); prevState++) {
-                    HashedFeatureVector stateDependentFeatures = newFeatureVector();
-
-                    String prevStateName = classAlphabet.getClassName(prevState); // more readable.
-
-                    for (TObjectDoubleIterator<String> iter = featuresNeedForState.iterator(); iter.hasNext(); ) {
-                        iter.advance();
-                        stateDependentFeatures.addFeature(iter.key() + "_Si-1=" + prevStateName, currentClass, iter
-                                .value());
-                    }
-
-                    // Current feature values do not affect choosing the best till here.
-                    double newSequenceScoreTillHere = averagedWeightVector.dotProd(stateDependentFeatures) + solution
-                            .getPreviousScore(prevState);
-
-                    if (newSequenceScoreTillHere > maxSequenceScoreTillHere) {
-                        maxSequenceScoreTillHere = newSequenceScoreTillHere;
-                        argmaxPreviousState = prevState;
-                        bestStateDependentFeatures = stateDependentFeatures;
-                    }
-                }
-
-
-                // Features that are labelled with current class.
+                // Features that only depend on the current state.
                 HashedFeatureVector localStateFeatures = newFeatureVector();
                 for (TObjectDoubleIterator<String> iter = featuresNoState.iterator(); iter.hasNext(); ) {
                     iter.advance();
                     localStateFeatures.addFeature(iter.key(), currentClass, iter.value());
                 }
-
                 double currentStateFeatureScore = averagedWeightVector.dotProd(localStateFeatures);
-
-                currentFeatureVectors[classIndex].extend(previousColFeatureVectors[argmaxPreviousState]);
-                currentFeatureVectors[classIndex].extend(bestStateDependentFeatures);
                 currentFeatureVectors[classIndex].extend(localStateFeatures);
 
-                double locaScore = maxSequenceScoreTillHere + currentStateFeatureScore;
+                MutableInt argmaxPreviousState = new MutableInt(-1);
+                final HashedFeatureVector[] bestStateDependentFeatures = {null};
 
-//                logger.info(String.format("Score at %d, class %s is %.4f", sequenceIndex, currentClass, locaScore));
-                if (locaScore > bestClassLocalScore) {
-//                    logger.info(String.format("BestClass is now %s, of score %.4f", currentClass, locaScore));
-                    bestClassLocalScore = locaScore;
-//                    logger.info(localStateFeatures.readableString());
-//                    if (classIndex != classAlphabet.getNoneOfTheAboveClassIndex()) {
-//                        DebugUtils.pause();
-//                    }
-                }
+                // Check which previous state gives the best score.
+                solution.getPreviousPossibleClassIndices().forEach(prevState -> {
+//                    logger.info("Possible previous state is " + prevState + " for sequence " + sequenceIndex);
 
-                solution.setCurrentScoreAt(classIndex, maxSequenceScoreTillHere + currentStateFeatureScore);
-                solution.setBackpointer(classIndex, argmaxPreviousState);
-            }
+                    HashedFeatureVector prevStateDependFeatures = newFeatureVector();
 
+                    String prevStateName = classAlphabet.getClassName(prevState); // more readable.
+
+                    for (TObjectDoubleIterator<String> iter = featuresNeedForState.iterator(); iter.hasNext(); ) {
+                        iter.advance();
+                        prevStateDependFeatures.addFeature(iter.key() + "_Si-1=" + prevStateName, currentClass, iter
+                                .value());
+                    }
+
+                    for (SequenceSolution.LatticeCell previousBest : solution.getPreviousBests(prevState)) {
+                        double newEdgeScore = averagedWeightVector.dotProd(prevStateDependFeatures) +
+                                currentStateFeatureScore;
+
+                        int addResult = solution.scoreNewEdge(classIndex, previousBest, newEdgeScore);
+                        if (addResult == 1) {
+                            // The new score is the best.
+                            bestStateDependentFeatures[0] = prevStateDependFeatures;
+                            argmaxPreviousState.setValue(prevState);
+//                            logger.info("Best prev state is now " + prevStateName);
+                        } else if (addResult == -1) {
+                            // The new score is worse than the worst, i.e. rejected by the heap. We don't
+                            // need to check any scores that is worse than this.
+                            break;
+                        }
+                    }
+                });
+
+                // Add feature vector from previous state, also added new features that depend on previous
+                // state.
+                currentFeatureVectors[classIndex].extend(previousColFeatureVectors[argmaxPreviousState.getValue()]);
+                currentFeatureVectors[classIndex].extend(bestStateDependentFeatures[0]);
+//                logger.info("Setting current feature vector at " + sequenceIndex);
+            });
         }
         solution.backTrace();
 
-        bestVector = currentFeatureVectors[solution.getClassAt(solution.getSequenceLength() - 1)];
+//        for (HashedFeatureVector currentFeatureVector : currentFeatureVectors) {
+//            logger.info(currentFeatureVector.toString());
+//        }
+
+        bestVector = currentFeatureVectors[classAlphabet.getOutsideClassIndex()];
+
+//        logger.info(bestVector.toString());
+
+//        System.out.println(solution.showBestBackPointerMap());
+//        DebugUtils.pause();
     }
 
     @Override
@@ -199,7 +199,6 @@ public class ViterbiDecoder extends SequenceDecoder {
                 fv.addFeature(iter.key() + "_Si-1" + previousState, currentClass, iter.value());
             }
         }
-
         return fv;
     }
 }

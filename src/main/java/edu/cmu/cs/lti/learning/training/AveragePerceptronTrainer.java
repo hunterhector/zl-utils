@@ -39,6 +39,11 @@ public class AveragePerceptronTrainer {
         SequenceSolution prediction = decoder.getDecodedPrediction();
         double loss = goldSolution.loss(prediction);
 
+//        logger.debug(goldSolution.toString());
+//        logger.debug(prediction.toString());
+//
+//        DebugUtils.pause();
+
         if (loss != 0) {
             HashedFeatureVector bestDecodingFeatures = decoder.getBestDecodingFeatures();
             updateWeights(goldFv, bestDecodingFeatures);

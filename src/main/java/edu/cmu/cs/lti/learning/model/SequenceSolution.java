@@ -1,10 +1,16 @@
 package edu.cmu.cs.lti.learning.model;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.google.common.collect.MinMaxPriorityQueue;
+import org.apache.commons.lang3.builder.CompareToBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Created with IntelliJ IDEA.
@@ -15,110 +21,321 @@ import java.util.stream.Collectors;
  */
 public class SequenceSolution extends Solution {
     private static final long serialVersionUID = 4963833442738553688L;
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+//    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private ClassAlphabet classAlphabet;
     private int sequenceLength;
-    private int[] solution;
-    private double[] previousColumnScores;
-    private double[] currColumnScores;
-    private int[][] backPointers;
 
-    int currentPosition;
+    // Container for the solutions, the k-th row corresponding to k-th best solution.
+    private int[][] solution;
 
+    // Each cells stores a list of best states that ended here, stored as a queue (heap).
+    // Because the MinMaxQueue will remove the greatest element when full, we reverse the comparator.
+    // To retrieve the best score for each pointer, just do poll (remove afterwards), and take the negative.
+    // This also implies tie is broken on the smaller state index.
+    // The queue can be iterate in order only once, hence it is temporary and will be iterate and convert as a list.
+    private MinMaxPriorityQueue<LatticeCell>[] temporaryCells;
+
+    // A full back pointer lattice that store all the cells, each cell store a list of k best back pointers.
+    private List<LatticeCell>[][] latticeCells;
+
+    private int currentPosition;
+
+    // K of the best K solution.
+    private int bestK;
+
+
+    public class LatticeCell implements Serializable, Comparable<LatticeCell> {
+        private static final long serialVersionUID = 5198803127418485563L;
+
+        private double score;
+        private int classIndex;
+        private LatticeCell backPointer;
+
+        public int getClassIndex() {
+            return classIndex;
+        }
+
+        public double getScore() {
+            return score;
+        }
+
+        public LatticeCell getBackPointer() {
+            return backPointer;
+        }
+
+        public LatticeCell(double score, int classIndex, LatticeCell backPointer) {
+            this.score = score;
+            this.classIndex = classIndex;
+            this.backPointer = backPointer;
+        }
+
+        /**
+         * This is a reverse comparator, the greatest scored element will be treated as the least
+         *
+         * @param o The other cell.
+         * @return
+         */
+        @Override
+        public int compareTo(LatticeCell o) {
+            return new CompareToBuilder().append(o.score, score).build();
+        }
+
+        @Override
+        public String toString() {
+            return new ToStringBuilder(this).append(score).append(classIndex).toString();
+        }
+
+        public String shortString() {
+            return String.format("[%.2f,%d,%d]", score, classIndex, backPointer.classIndex);
+        }
+    }
+
+    public LatticeCell getEmptyCell() {
+        return new LatticeCell(0, classAlphabet.getOutsideClassIndex(), null);
+    }
+
+    /**
+     * Create a solution with existing sequence set, should be used for gold standard. Decoding support such as
+     * backpointer saving are not provided.
+     *
+     * @param classAlphabet The Class Alphabet contains state information.
+     * @param sequence      The known sequence.
+     */
     public SequenceSolution(ClassAlphabet classAlphabet, int[] sequence) {
         this.classAlphabet = classAlphabet;
         this.sequenceLength = sequence.length;
-        solution = new int[sequenceLength];
-        System.arraycopy(sequence, 0, solution, 0, solution.length);
+        solution = new int[1][sequenceLength];
+        System.arraycopy(sequence, 0, solution[0], 0, sequenceLength);
     }
 
+    /**
+     * Create a empty solution object, which can be later filled during decoding. This is will create a best solution
+     * container, if you need a best k container, use SequenceSolution(ClassAlphabet, int, int).
+     *
+     * @param classAlphabet  The Class Alphabet contains state information.
+     * @param sequenceLength The length of the solution.
+     */
     public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength) {
+        this(classAlphabet, sequenceLength, 1);
+    }
+
+    /**
+     * Create a empty solution object, which can be later filled during decoding. This is will create a best k solution
+     * container.
+     *
+     * @param classAlphabet  The Class Alphabet contains state information.
+     * @param sequenceLength The length of the solution.
+     * @param bestK          How many sequence should be contained in the solution.
+     */
+    @SuppressWarnings("unchecked")
+    public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength, int bestK) {
+        this.bestK = bestK;
         this.classAlphabet = classAlphabet;
         this.sequenceLength = sequenceLength;
-        solution = new int[sequenceLength];
-        previousColumnScores = new double[classAlphabet.size()];
-        currColumnScores = new double[classAlphabet.size()];
-        backPointers = new int[sequenceLength + 1][classAlphabet.size()];
+        solution = new int[bestK][sequenceLength];
+        temporaryCells = new MinMaxPriorityQueue[classAlphabet.size()];
+        latticeCells = new List[sequenceLength + 1][classAlphabet.size()];
         currentPosition = -1;
     }
 
     public boolean finished() {
-        return currentPosition == sequenceLength;
+        return currentPosition > sequenceLength;
     }
 
     public int getNumClasses() {
-        if (currentPosition == -1 || currentPosition == sequenceLength) {
+        if (currentPosition == sequenceLength) {
             return 1;
         } else {
             return classAlphabet.size();
         }
     }
 
+    public IntStream getCurrentPossibleClassIndices() {
+        return getPossibleClassIndices(currentPosition);
+    }
+
+    public IntStream getPreviousPossibleClassIndices() {
+        return getPossibleClassIndices(currentPosition - 1);
+    }
+
+    public IntStream getPossibleClassIndices(int position) {
+        if (position >= sequenceLength || position < 0) {
+            return classAlphabet.getOutsideClassRange();
+        } else {
+            return classAlphabet.getNormalClassesRange();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     public void advance() {
+        // Store all temporary back pointers from the heap to a list for further access.
+        if (currentPosition >= 0) {
+            getPossibleClassIndices(currentPosition).forEach(classIndex -> {
+                MinMaxPriorityQueue<LatticeCell> tempBackPointer = temporaryCells[classIndex];
+                if (tempBackPointer == null) {
+                    throw new IllegalStateException(String.format("Temp pointers are not updated before call, cannot " +
+                            "find cell at position %d, class %d", currentPosition - 1, classIndex));
+                }
+                latticeCells[currentPosition][classIndex] = new ArrayList<>();
+                while (!tempBackPointer.isEmpty()) {
+                    latticeCells[currentPosition][classIndex].add(tempBackPointer.poll());
+//                System.out.println("Lattice cell at " + currentPosition + " " + classIndex + " updated.");
+                }
+            });
+        }
+
         ++currentPosition;
-        previousColumnScores = currColumnScores;
-        currColumnScores = new double[classAlphabet.size()];
+        temporaryCells = new MinMaxPriorityQueue[classAlphabet.size()];
+    }
+
+    public int getBestK() {
+        return bestK;
     }
 
     public int getCurrentPosition() {
         return currentPosition;
     }
 
+    /**
+     * Return the class of the best solution contained.
+     *
+     * @param classIndex The class index
+     * @return
+     */
     public int getClassAt(int classIndex) {
-        return solution[classIndex];
+        return getClassAt(0, classIndex);
     }
 
-    public double getPreviousScore(int classIndex) {
-        return previousColumnScores[classIndex];
+    /**
+     * Return the class of the k-th best solution.
+     *
+     * @param k
+     * @param classIndex
+     * @return
+     */
+    public int getClassAt(int k, int classIndex) {
+        return solution[k][classIndex];
     }
 
-    public void setCurrentScoreAt(int classIndex, double score) {
-        currColumnScores[classIndex] = score;
+    public List<LatticeCell> getPreviousBests(int classIndex) {
+        if (currentPosition == 0) {
+            return Collections.singletonList(getEmptyCell());
+        }
+        return latticeCells[currentPosition - 1][classIndex];
     }
 
-    public void setBackpointer(int classIndex, int previousState) {
-        backPointers[currentPosition][classIndex] = previousState;
+    private MinMaxPriorityQueue<LatticeCell> createMaxFirstQueue() {
+        // Note that the comparison is revered within LatticCell, this make the Queue always discard the elemen with
+        // minimum value.
+        // You could consider this Queue compare elements by their rank (higher value with lower rank number), maximum
+        // value rank number 1.
+        return MinMaxPriorityQueue.maximumSize(bestK).create();
     }
 
-    public String showBackpointerMap() {
+    public int scoreNewEdge(int toCellClassIndex, LatticeCell fromCell, double newEdgeScore) {
+        if (fromCell == null) {
+            return 0;
+        }
+
+        int addResult = 0;
+
+        double newScoreTillHere = fromCell.getScore() + newEdgeScore;
+
+        MinMaxPriorityQueue<LatticeCell> queue = temporaryCells[toCellClassIndex];
+        if (queue == null) {
+            temporaryCells[toCellClassIndex] = createMaxFirstQueue();
+            queue = temporaryCells[toCellClassIndex];
+            addResult = 1;
+//            System.out.println("Create new temporary cell for " + toCellClassIndex);
+//            System.out.println("New score for the cell " + newScoreTillHere);
+        } else if (queue.isEmpty()) {
+            addResult = 1;
+//            System.out.println("Add to a empty queue");
+        } else if (queue.peek().getScore() < newScoreTillHere) {
+            addResult = 1;
+//            System.out.println("Better than the best " + queue.peek().getScore() + " < " + newScoreTillHere);
+//            System.out.println("Back pointer contribution " + fromCell.getScore() + " new score " + newEdgeScore);
+//            DebugUtils.pause();
+        } else if (queue.peekLast().getScore() >= newScoreTillHere) {
+            addResult = -1;
+        }
+
+//        System.out.println("Adding to " + toCellClassIndex + " from " + fromCell.getClassIndex() + " with score " +
+//                newEdgeScore);
+
+        queue.add(new LatticeCell(newScoreTillHere, toCellClassIndex, fromCell));
+        return addResult;
+    }
+
+    public String showBestBackPointerMap() {
         StringBuilder sb = new StringBuilder();
-        String rowSep;
+        String rowSep = "\t";
         String colSep = "";
-        for (int[] backPointer : backPointers) {
+        int rowNumber = 0;
+        for (List<LatticeCell>[] backPointer : latticeCells) {
             sb.append(colSep);
+            sb.append(rowNumber++);
+            sb.append(rowSep);
             colSep = "\n";
-            rowSep = "";
-            for (int aBackPointer : backPointer) {
+            for (List<LatticeCell> aBackPointer : backPointer) {
                 sb.append(rowSep);
-                rowSep = "\t";
-                sb.append(aBackPointer);
+                if (aBackPointer == null) {
+                    sb.append("<EMPTY>");
+                } else {
+                    sb.append(aBackPointer.get(0).shortString());
+                }
             }
         }
         return sb.toString();
     }
 
     public void backTrace() {
-        int previousClass = 0;
-
-        for (int backCol = sequenceLength; backCol > 0; backCol--) {
-            previousClass = backPointers[backCol][previousClass];
-            solution[backCol - 1] = previousClass;
+        for (int kthSolution = 0; kthSolution < bestK; kthSolution++) {
+            solution[kthSolution] = backTraceOne(latticeCells[sequenceLength][0].get(kthSolution));
         }
+    }
+
+    /**
+     * Back trace starting from one particular cell of the last column.
+     *
+     * @param cell The cell to start from
+     * @return The decoded solution.
+     */
+    private int[] backTraceOne(LatticeCell cell) {
+        int[] oneSolution = new int[sequenceLength];
+        LatticeCell currentCell = cell;
+        for (int backCol = sequenceLength - 1; backCol >= 0; backCol--) {
+            currentCell = currentCell.backPointer;
+            oneSolution[backCol] = currentCell.getClassIndex();
+//            System.out.println("Class index at " + backCol + " is " + currentCell.getClassIndex());
+        }
+        return oneSolution;
     }
 
     public int getSequenceLength() {
         return sequenceLength;
     }
 
+    /**
+     * Make the best solution to string by default.
+     *
+     * @return The string representation of the best solution.
+     */
     public String toString() {
-        return Arrays.stream(solution).mapToObj(classAlphabet::getClassName).collect(Collectors.joining(", "));
+        return Arrays.stream(solution[0]).mapToObj(classAlphabet::getClassName).collect(Collectors.joining(", "));
     }
 
     public ClassAlphabet getClassAlphabet() {
         return classAlphabet;
     }
 
+    /**
+     * Equals is defined on the best solution contained.
+     *
+     * @param s The other solution to compare.
+     * @return
+     */
     @Override
     public boolean equals(Object s) {
         if (s == null) {
@@ -134,7 +351,7 @@ public class SequenceSolution extends Solution {
             throw new IllegalArgumentException("Cannot compare two solution on difference sequences.");
         } else {
             for (int i = 0; i < sequenceLength; i++) {
-                if (otherSolution.getClassAt(i) != solution[i]) {
+                if (otherSolution.getClassAt(i) != solution[0][i]) {
                     return false;
                 }
             }
@@ -143,24 +360,32 @@ public class SequenceSolution extends Solution {
         return true;
     }
 
+    /**
+     * Compute loss of two solutions, always computed on the best solution.
+     *
+     * @param s The other solution to compute the loss against.
+     * @return
+     */
     @Override
     public double loss(Solution s) {
         if (getClass() != s.getClass())
             throw new IllegalArgumentException("Must compare with a sequence solution.");
 
         SequenceSolution otherSolution = (SequenceSolution) s;
+
         if (otherSolution.sequenceLength != sequenceLength) {
             throw new IllegalArgumentException("Cannot compare two solutions on difference sequences.");
         } else {
+            int[] thisBest = solution[0];
             int mismatch = 0;
             int tp = 0;
             int numGold = 0;
             int numSys = 0;
             for (int i = 0; i < sequenceLength; i++) {
                 int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
-                if (solution[i] != otherClass) {
+                if (thisBest[i] != otherClass) {
                     numGold += 1;
-                    if (otherSolution.getClassAt(i) == solution[i]) {
+                    if (otherSolution.getClassAt(i) == thisBest[i]) {
                         tp += 1;
                     }
                 }
@@ -169,7 +394,7 @@ public class SequenceSolution extends Solution {
                     numSys += 1;
                 }
 
-                if (otherSolution.getClassAt(i) != solution[i]) {
+                if (otherSolution.getClassAt(i) != thisBest[i]) {
                     mismatch += 1;
                 }
             }
@@ -183,4 +408,23 @@ public class SequenceSolution extends Solution {
 //            return mismatch * 1.0 / sequenceLength;
         }
     }
+
+    private void testQueue() {
+        MinMaxPriorityQueue<LatticeCell> q = this.createMaxFirstQueue();
+
+        for (int i = 0; i < 6; i++) {
+            q.add(new LatticeCell(i, 0, null));
+        }
+
+        while (!q.isEmpty()) {
+            System.out.println(q.poll());
+        }
+    }
+
+    public static void main(String[] args) {
+        SequenceSolution test = new SequenceSolution(new ClassAlphabet(true), 0, 3);
+
+        test.testQueue();
+    }
+
 }
