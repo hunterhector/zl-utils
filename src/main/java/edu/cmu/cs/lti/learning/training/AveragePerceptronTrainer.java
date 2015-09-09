@@ -33,8 +33,8 @@ public class AveragePerceptronTrainer {
         this.stepSize = stepSize;
     }
 
-    public double trainNext(SequenceSolution goldSolution, HashedFeatureVector goldFv, ChainFeatureExtractor
-            extractor, double lagrangian, CrfState key) {
+    public double trainNext(SequenceSolution goldSolution, HashedFeatureVector goldFv, ChainFeatureExtractor extractor,
+                            double lagrangian, CrfState key) {
         decoder.decode(extractor, averagedWeightVector, goldSolution.getSequenceLength(), lagrangian, key);
         SequenceSolution prediction = decoder.getDecodedPrediction();
         double loss = goldSolution.loss(prediction);

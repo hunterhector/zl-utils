@@ -10,10 +10,6 @@ import gnu.trove.map.TObjectDoubleMap;
  * @author Zhengzhong Liu
  */
 public abstract class ChainFeatureExtractor {
-    public static final String START_CLASS = "<START>";
-
-    public static final String END_CLASS = "<END>";
-
     Alphabet alphabet;
 
     public ChainFeatureExtractor(Alphabet alphabet) {
