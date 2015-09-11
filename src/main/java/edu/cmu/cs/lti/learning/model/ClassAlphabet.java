@@ -29,8 +29,8 @@ public class ClassAlphabet implements Serializable {
     ArrayList<String> classes;
     int index;
 
-    public ClassAlphabet(boolean noneOfTheAbove) {
-        this(new String[0], noneOfTheAbove);
+    public ClassAlphabet(boolean noneOfTheAbove, boolean withOutsideClass) {
+        this(new String[0], noneOfTheAbove, withOutsideClass);
     }
 
     public ClassAlphabet() {
@@ -38,14 +38,16 @@ public class ClassAlphabet implements Serializable {
     }
 
     public ClassAlphabet(String[] classes) {
-        this(classes, false);
+        this(classes, false, false);
     }
 
-    public ClassAlphabet(String[] classes, boolean noneOfTheAbove) {
+    public ClassAlphabet(String[] classes, boolean noneOfTheAbove, boolean withOutsideClass) {
         this.classes = new ArrayList<>();
         index = 0;
 
-        addClass(outsideClass);
+        if (withOutsideClass) {
+            addClass(outsideClass);
+        }
 
         if (noneOfTheAbove) {
             addClass(noneOfTheAboveClass);

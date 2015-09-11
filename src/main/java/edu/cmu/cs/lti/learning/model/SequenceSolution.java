@@ -44,7 +44,6 @@ public class SequenceSolution extends Solution {
     // K of the best K solution.
     private int bestK;
 
-
     public class LatticeCell implements Serializable, Comparable<LatticeCell> {
         private static final long serialVersionUID = 5198803127418485563L;
 
@@ -422,7 +421,7 @@ public class SequenceSolution extends Solution {
     }
 
     public static void main(String[] args) {
-        SequenceSolution test = new SequenceSolution(new ClassAlphabet(true), 0, 3);
+        SequenceSolution test = new SequenceSolution(new ClassAlphabet(true, true), 0, 3);
 
         test.testQueue();
     }

@@ -5,15 +5,9 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
-import org.apache.commons.lang3.SerializationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.Serializable;
 
 /**
  * Created with IntelliJ IDEA.
@@ -22,14 +16,12 @@ import java.io.Serializable;
  *
  * @author Zhengzhong Liu
  */
-public class Alphabet implements Serializable {
+public class HashAlphabet extends FeatureAlphabet {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private static final long serialVersionUID = 8684276781666018103L;
 
     private HashFunction hasher = Hashing.murmur3_32();
-
-//    private TObjectIntHashMap<String> hashValueStore;
 
     private TObjectIntMap<String>[] featureCounters;
 
@@ -39,7 +31,7 @@ public class Alphabet implements Serializable {
 
     private int hashMask;
 
-    public Alphabet(int alphabetBits) {
+    public HashAlphabet(int alphabetBits) {
         this(alphabetBits, false);
     }
 
@@ -51,7 +43,7 @@ public class Alphabet implements Serializable {
      * @param storeReadable If this is true, it will create a alphabet that also stores all feature names to integer id
      *                      count. This will make the training about25% slower.
      */
-    public Alphabet(int alphabetBits, boolean storeReadable) {
+    public HashAlphabet(int alphabetBits, boolean storeReadable) {
         if (alphabetBits >= 31) {
             throw new IllegalArgumentException("Alphabet size exceed the power of current Murmur");
         }
@@ -71,7 +63,7 @@ public class Alphabet implements Serializable {
         }
     }
 
-    public int hash(String feature) {
+    private int hash(String feature) {
         // It is murmur32, which can produce a maximum 4 byte element.
         int hashVal = hasher.hashString(feature, Charsets.UTF_8).asInt() & hashMask;
 
@@ -102,7 +94,7 @@ public class Alphabet implements Serializable {
         }
     }
 
-    public String[] getMappedFeatureNames(int featureIndex) {
+    private String[] getMappedFeatureNames(int featureIndex) {
         if (storeReadable) {
             TObjectIntMap<String> counter = featureCounters[featureIndex];
             if (featureCounters[featureIndex] == null) {
@@ -135,11 +127,22 @@ public class Alphabet implements Serializable {
         return storeReadable;
     }
 
-    public int getAlphabetSize() {
-        return alphabetSize;
+    @Override
+    public int getFeatureId(String featureName) {
+        return hash(featureName);
     }
 
-    public void write(File outputFile) throws FileNotFoundException {
-        SerializationUtils.serialize(this, new FileOutputStream(outputFile));
+    @Override
+    public String[] getFeatureNames(int featureIndex) {
+        return getMappedFeatureNames(featureIndex);
+    }
+
+    @Override
+    public String getFeatureNameRepre(int featureIndex) {
+        return getMappedFeatureCounters(featureIndex);
+    }
+
+    public int getAlphabetSize() {
+        return alphabetSize;
     }
 }

@@ -17,7 +17,7 @@ public class RealValueFeatureVector extends HashedFeatureVector {
 
     TIntDoubleMap fv;
 
-    public RealValueFeatureVector(Alphabet alphabet) {
+    public RealValueFeatureVector(FeatureAlphabet alphabet) {
         super(alphabet);
         fv = new TIntDoubleHashMap();
     }

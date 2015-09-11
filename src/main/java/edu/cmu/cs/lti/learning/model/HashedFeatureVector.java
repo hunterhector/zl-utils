@@ -15,11 +15,11 @@ import java.io.Serializable;
 public abstract class HashedFeatureVector implements Serializable {
     private static final long serialVersionUID = -6736949803936456446L;
 
-    private Alphabet alphabet;
+    private FeatureAlphabet alphabet;
 
     private int featureSize;
 
-    public HashedFeatureVector(Alphabet alphabet) {
+    public HashedFeatureVector(FeatureAlphabet alphabet) {
         this.alphabet = alphabet;
     }
 
@@ -34,7 +34,7 @@ public abstract class HashedFeatureVector implements Serializable {
     }
 
     public int addFeature(String featureName, String tag, double featureValue) {
-        if (addFeature(alphabet.hash(featureName + ":Ti=" + tag), featureValue)) {
+        if (addFeature(alphabet.getFeatureId(featureName + ":Ti=" + tag), featureValue)) {
             featureSize++;
         }
         return featureSize;
@@ -70,7 +70,7 @@ public abstract class HashedFeatureVector implements Serializable {
     }
 
     public double getFeatureValue(String featureName) {
-        return getFeatureValue(alphabet.hash(featureName));
+        return getFeatureValue(alphabet.getFeatureId(featureName));
     }
 
     public abstract double getFeatureValue(int featureIndex);
@@ -97,10 +97,6 @@ public abstract class HashedFeatureVector implements Serializable {
     }
 
     public String readableString(String separator) {
-        if (!alphabet.isStoreReadable()) {
-            return "";
-        }
-
         StringBuilder features = new StringBuilder();
         FeatureIterator iter = featureIterator();
 
@@ -108,7 +104,7 @@ public abstract class HashedFeatureVector implements Serializable {
         while (iter.hasNext()) {
             iter.next();
             features.append(sep);
-            features.append(String.format("%d %s : %.2f", iter.featureIndex(), alphabet.getMappedFeatureCounters(iter
+            features.append(String.format("%d %s : %.2f", iter.featureIndex(), alphabet.getFeatureNameRepre(iter
                     .featureIndex()), iter.featureValue()));
             sep = separator;
         }
@@ -121,7 +117,7 @@ public abstract class HashedFeatureVector implements Serializable {
         return featureSize;
     }
 
-    public Alphabet getAlphabet() {
+    public FeatureAlphabet getAlphabet() {
         return alphabet;
     }
 }

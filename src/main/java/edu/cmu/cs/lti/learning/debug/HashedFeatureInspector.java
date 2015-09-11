@@ -1,6 +1,6 @@
 package edu.cmu.cs.lti.learning.debug;
 
-import edu.cmu.cs.lti.learning.model.Alphabet;
+import edu.cmu.cs.lti.learning.model.HashAlphabet;
 import edu.cmu.cs.lti.learning.model.AveragedWeightVector;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
@@ -29,11 +29,11 @@ import java.util.function.ToIntFunction;
 public class HashedFeatureInspector {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private Alphabet featureAlphabet;
+    private HashAlphabet featureAlphabet;
     private AveragedWeightVector averagedWeightVector;
     private ReverseFeatureComparator comp;
 
-    public HashedFeatureInspector(Alphabet featureAlphabet,
+    public HashedFeatureInspector(HashAlphabet featureAlphabet,
                                   AveragedWeightVector averagedWeightVector) {
         this.featureAlphabet = featureAlphabet;
         this.averagedWeightVector = averagedWeightVector;
@@ -46,7 +46,7 @@ public class HashedFeatureInspector {
         int actualFeatures = 0;
 
         for (int i = 0; i < averagedWeightVector.getFeatureSize(); i++) {
-            String[] featureNames = featureAlphabet.getMappedFeatureNames(i);
+            String[] featureNames = featureAlphabet.getFeatureNames(i);
             if (featureNames != null) {
                 actualFeatures += featureNames.length;
                 for (String featureName : featureNames) {
@@ -128,7 +128,7 @@ public class HashedFeatureInspector {
         String outputDirectory = args[1];
 
 
-        Alphabet featureAlphabet = SerializationUtils.deserialize(new FileInputStream(new File(modelDirectory,
+        HashAlphabet featureAlphabet = SerializationUtils.deserialize(new FileInputStream(new File(modelDirectory,
                 "alphabet")));
         AveragedWeightVector averagedWeightVector = SerializationUtils.deserialize(new FileInputStream(new File
                 (modelDirectory, "crfWeights")));

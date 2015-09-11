@@ -29,16 +29,16 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     private int kBest;
 
-    public ViterbiDecoder(Alphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher) {
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher) {
         this(featureAlphabet, classAlphabet, cacher, false);
     }
 
-    public ViterbiDecoder(Alphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher, boolean
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher, boolean
             binaryFeature) {
         this(featureAlphabet, classAlphabet, cacher, binaryFeature, 1);
     }
 
-    public ViterbiDecoder(Alphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher, boolean
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher, boolean
             binaryFeature, int kBest) {
         super(featureAlphabet, classAlphabet, binaryFeature);
         this.cacher = cacher;

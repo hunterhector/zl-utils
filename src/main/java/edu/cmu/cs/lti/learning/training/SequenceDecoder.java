@@ -13,13 +13,13 @@ import edu.cmu.cs.lti.learning.model.*;
 public abstract class SequenceDecoder {
     protected ClassAlphabet classAlphabet;
 
-    protected Alphabet featureAlphabet;
+    protected FeatureAlphabet featureAlphabet;
 
     protected boolean useBinary;
 
     private CrfState dummyKey = new CrfState();
 
-    public SequenceDecoder(Alphabet featureAlphabet, ClassAlphabet classAlphabet) {
+    public SequenceDecoder(HashAlphabet featureAlphabet, ClassAlphabet classAlphabet) {
         this(featureAlphabet, classAlphabet, false);
     }
 
@@ -31,11 +31,11 @@ public abstract class SequenceDecoder {
         return classAlphabet;
     }
 
-    public Alphabet getFeatureAlphabet() {
+    public FeatureAlphabet getFeatureAlphabet() {
         return featureAlphabet;
     }
 
-    public SequenceDecoder(Alphabet featureAlphabet, ClassAlphabet classAlphabet, boolean binaryFeature) {
+    public SequenceDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, boolean binaryFeature) {
         this.featureAlphabet = featureAlphabet;
         this.classAlphabet = classAlphabet;
         this.useBinary = binaryFeature;

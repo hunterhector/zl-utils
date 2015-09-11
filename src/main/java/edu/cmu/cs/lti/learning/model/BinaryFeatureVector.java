@@ -16,7 +16,7 @@ public class BinaryFeatureVector extends HashedFeatureVector {
 
     TIntIntMap fv;
 
-    public BinaryFeatureVector(Alphabet alphabet) {
+    public BinaryFeatureVector(FeatureAlphabet alphabet) {
         super(alphabet);
         fv = new TIntIntHashMap();
     }

@@ -10,9 +10,9 @@ import gnu.trove.map.TObjectDoubleMap;
  * @author Zhengzhong Liu
  */
 public abstract class ChainFeatureExtractor {
-    Alphabet alphabet;
+    FeatureAlphabet alphabet;
 
-    public ChainFeatureExtractor(Alphabet alphabet) {
+    public ChainFeatureExtractor(FeatureAlphabet alphabet) {
         this.alphabet = alphabet;
     }
 
