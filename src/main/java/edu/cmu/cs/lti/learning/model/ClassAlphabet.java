@@ -59,9 +59,12 @@ public class ClassAlphabet implements Serializable {
     }
 
     public int addClass(String className) {
-        this.classes.add(className);
-        classIndices.put(className, index);
-        return index++;
+        if (!classIndices.containsKey(className)) {
+            classes.add(className);
+            classIndices.put(className, index);
+            index++;
+        }
+        return index;
     }
 
     public int getClassIndex(String className) {

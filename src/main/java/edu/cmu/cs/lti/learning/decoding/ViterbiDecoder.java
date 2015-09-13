@@ -144,8 +144,7 @@ public class ViterbiDecoder extends SequenceDecoder {
                     }
                 });
 
-                // Add feature vector from previous state, also added new features that depend on previous
-                // state.
+                // Add feature vector from previous state, also added new features that depend on previous state.
                 currentFeatureVectors[classIndex].extend(previousColFeatureVectors[argmaxPreviousState.getValue()]);
                 currentFeatureVectors[classIndex].extend(bestStateDependentFeatures[0]);
 //                logger.info("Setting current feature vector at " + sequenceIndex);

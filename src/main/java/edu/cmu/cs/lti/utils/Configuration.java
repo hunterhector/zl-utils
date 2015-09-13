@@ -3,8 +3,9 @@ package edu.cmu.cs.lti.utils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Logger;
+import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA.
@@ -13,23 +14,31 @@ import java.util.logging.Logger;
  * Time: 1:17 AM
  */
 public class Configuration {
-    private final static Logger LOGGER = Logger.getLogger(Configuration.class.getName());
-
-    private File configFile;
     private Properties properties;
 
+    public Configuration() {
+        properties = new Properties();
+    }
 
     public Configuration(String configurationFilePath) throws IOException {
         this(new File(configurationFilePath));
     }
 
     public Configuration(File configurationFile) throws IOException {
-        configFile = configurationFile;
-        if (!configFile.exists()) {
-            throw new IOException("Cannot read config file at : " + configFile.getCanonicalPath());
+        if (!configurationFile.exists()) {
+            throw new IOException("Cannot read config file at : " + configurationFile.getCanonicalPath());
         }
         properties = new Properties();
         properties.load(new FileInputStream(configurationFile));
+    }
+
+    public void add(Object key, Object value) {
+        properties.put(key, value);
+    }
+
+
+    public Set<Map.Entry<Object, Object>> getAllEntries() {
+        return properties.entrySet();
     }
 
     public String getOrElse(String key, String defaultValue) {
