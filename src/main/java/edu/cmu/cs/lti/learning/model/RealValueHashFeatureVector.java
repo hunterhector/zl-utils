@@ -11,19 +11,19 @@ import gnu.trove.map.hash.TIntDoubleHashMap;
  *
  * @author Zhengzhong Liu
  */
-public class RealValueFeatureVector extends HashedFeatureVector {
+public class RealValueHashFeatureVector extends FeatureVector {
 
     private static final long serialVersionUID = -8434459870299460601L;
 
     TIntDoubleMap fv;
 
-    public RealValueFeatureVector(FeatureAlphabet alphabet) {
+    public RealValueHashFeatureVector(FeatureAlphabet alphabet) {
         super(alphabet);
         fv = new TIntDoubleHashMap();
     }
 
     @Override
-    public boolean addFeature(int featureIndex, double featureValue) {
+    public boolean addFeatureInternal(int featureIndex, double featureValue) {
         double adjustedValue = fv.adjustOrPutValue(featureIndex, featureValue, featureValue);
         return adjustedValue == featureValue;
     }

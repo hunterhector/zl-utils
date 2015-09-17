@@ -3,6 +3,7 @@ package edu.cmu.cs.lti.learning.training;
 import edu.cmu.cs.lti.learning.model.BiMapAlphabet;
 import edu.cmu.cs.lti.learning.model.ClassAlphabet;
 import edu.cmu.cs.lti.learning.model.FeatureAlphabet;
+import edu.cmu.cs.lti.learning.model.WekaModel;
 import gnu.trove.iterator.TIntDoubleIterator;
 import gnu.trove.iterator.TObjectIntIterator;
 import gnu.trove.map.TIntDoubleMap;
@@ -12,7 +13,10 @@ import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import weka.classifiers.Classifier;
-import weka.core.*;
+import weka.core.Attribute;
+import weka.core.Instance;
+import weka.core.Instances;
+import weka.core.SparseInstance;
 import weka.core.converters.ArffSaver;
 
 import java.io.File;
@@ -32,19 +36,13 @@ import java.util.Map;
 public abstract class WekaBasedTrainer {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public static final String FEATURE_ALPHABET_BASENAME = "featureNames";
-
-    public static final String CLASS_LABEL_BASENAME = "labelNames";
-
     public static final String DATASET_BASENAME = "dataset.arff";
 
     private ArrayList<Attribute> featureConfiguration;
 
     private ArffSaver saver = new ArffSaver();
 
-    private FeatureAlphabet alphabet = new BiMapAlphabet();
-
-    private ClassAlphabet classAlphabet = new ClassAlphabet();
+    private BiMapAlphabet alphabet = new BiMapAlphabet();
 
     protected abstract Map<String, Classifier> getClassifiers() throws Exception;
 
@@ -58,16 +56,6 @@ public abstract class WekaBasedTrainer {
         declareFeatures(featureNameMap, featureConfiguration);
         declareClass(classAlphabet, featureConfiguration);
         logger.info("Number of features : " + featureNameMap.size() + ". Number of classes : " + classAlphabet.size());
-    }
-
-    private void writeModel(String modelOutputDir, String classifierName, Classifier cls) throws Exception {
-        if (modelOutputDir != null) {
-            logger.info("Saving feature alphabet.");
-            alphabet.write(new File(modelOutputDir, FEATURE_ALPHABET_BASENAME));
-            logger.info("Saving class alphabet.");
-            classAlphabet.write(new File(modelOutputDir, CLASS_LABEL_BASENAME));
-            SerializationHelper.write(new File(modelOutputDir, classifierName).getPath(), cls);
-        }
     }
 
     private void declareClass(ClassAlphabet classAlphabet, List<Attribute> featureVector) {
@@ -85,6 +73,7 @@ public abstract class WekaBasedTrainer {
 
         for (TObjectIntIterator<String> iter = featureNames.iterator(); iter.hasNext(); ) {
             iter.advance();
+//            System.out.println(iter.key()+ "  " + iter.value());
             featureArray[iter.value()] = new Attribute(iter.key());
         }
 
@@ -141,16 +130,21 @@ public abstract class WekaBasedTrainer {
         logger.info("Running feature generation.");
         getFeatures(rawInstances, alphabet, classAlphabet);
 
-        configFeatures(featureNameMap, classAlphabet);
+        for (Map.Entry<String, Integer> featureNameEntry : alphabet.getAllFeatureNames()) {
+            featureNameMap.put(featureNameEntry.getKey(), featureNameEntry.getValue());
+        }
 
+        configFeatures(featureNameMap, classAlphabet);
         Instances trainingDataset = prepareDataSet(rawInstances, new File(modelOutputDir, DATASET_BASENAME).getPath());
+
+        Map<String, Classifier> classifiers = getClassifiers();
 
         for (Map.Entry<String, Classifier> nameAndCls : getClassifiers().entrySet()) {
             Classifier cls = nameAndCls.getValue();
-            String name = nameAndCls.getKey();
             cls.buildClassifier(trainingDataset);
-            writeModel(modelOutputDir, name, cls);
         }
-    }
 
+        WekaModel model = new WekaModel(alphabet, classAlphabet, classifiers, featureConfiguration);
+        model.write(new File(modelOutputDir));
+    }
 }

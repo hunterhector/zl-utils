@@ -1,7 +1,5 @@
 package edu.cmu.cs.lti.learning.model;
 
-import gnu.trove.map.TObjectDoubleMap;
-
 /**
  * Created with IntelliJ IDEA.
  * Date: 8/21/15
@@ -16,8 +14,8 @@ public abstract class ChainFeatureExtractor {
         this.alphabet = alphabet;
     }
 
-    public abstract void extract(int focus, TObjectDoubleMap<String> features,
-                                 TObjectDoubleMap<String> featuresNeedForState);
+    public abstract void extract(int focus, FeatureVector features,
+                                 FeatureVector featuresNeedForState);
 
     public int getFeatureDimension() {
         return alphabet.getAlphabetSize();

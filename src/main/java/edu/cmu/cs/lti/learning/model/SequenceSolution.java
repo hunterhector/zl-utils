@@ -247,7 +247,10 @@ public class SequenceSolution extends Solution {
             queue = temporaryCells[toCellClassIndex];
             addResult = 1;
 //            System.out.println("Create new temporary cell for " + toCellClassIndex);
-//            System.out.println("New score for the cell " + newScoreTillHere);
+//            System.out.println("New score for the cell " + newScoreTillHere + " at index " + currentPosition);
+//            if (newScoreTillHere > 0) {
+//                DebugUtils.pause();
+//            }
         } else if (queue.isEmpty()) {
             addResult = 1;
 //            System.out.println("Add to a empty queue");
@@ -260,8 +263,9 @@ public class SequenceSolution extends Solution {
             addResult = -1;
         }
 
-//        System.out.println("Adding to " + toCellClassIndex + " from " + fromCell.getClassIndex() + " with score " +
-//                newEdgeScore);
+//        System.out.println("Adding to " + toCellClassIndex + " from " + fromCell.getClassIndex() + " at position " +
+//                currentPosition);
+//        System.out.println("From score is " + fromCell.getScore() + " edge score is " + newEdgeScore);
 
         queue.add(new LatticeCell(newScoreTillHere, toCellClassIndex, fromCell));
         return addResult;

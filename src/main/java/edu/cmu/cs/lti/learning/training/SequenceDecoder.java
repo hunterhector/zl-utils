@@ -41,19 +41,23 @@ public abstract class SequenceDecoder {
         this.useBinary = binaryFeature;
     }
 
-
-    public void decode(ChainFeatureExtractor extractor, AveragedWeightVector averagedWeightVector, int
-            sequenceLength, double lagrangian) {
-        decode(extractor, averagedWeightVector, sequenceLength, lagrangian, dummyKey);
+    public void decode(ChainFeatureExtractor extractor, BiKeyWeightVector weightVector, int
+            sequenceLength, double lagrangian, boolean useAverage) {
+        decode(extractor, weightVector, sequenceLength, lagrangian, dummyKey, useAverage);
     }
 
-    public abstract void decode(ChainFeatureExtractor extractor, AveragedWeightVector weightVector, int
-            sequenceLength, double lagrangian, CrfState key);
+    public void decode(ChainFeatureExtractor extractor, BiKeyWeightVector weightVector, int
+            sequenceLength, double lagrangian, CrfState key) {
+        decode(extractor, weightVector, sequenceLength, lagrangian, key, false);
+    }
+
+    public abstract void decode(ChainFeatureExtractor extractor, BiKeyWeightVector weightVector, int
+            sequenceLength, double lagrangian, CrfState key, boolean useAverage);
 
     public abstract SequenceSolution getDecodedPrediction();
 
-    public abstract HashedFeatureVector getBestDecodingFeatures();
+    public abstract BiKeyFeatureVector getBestDecodingFeatures();
 
-    public abstract HashedFeatureVector getSolutionFeatures(ChainFeatureExtractor extractor, SequenceSolution
+    public abstract BiKeyFeatureVector getSolutionFeatures(ChainFeatureExtractor extractor, SequenceSolution
             solution);
 }

@@ -1,6 +1,6 @@
 package edu.cmu.cs.lti.learning.cache;
 
-import gnu.trove.map.TObjectDoubleMap;
+import edu.cmu.cs.lti.learning.model.FeatureVector;
 
 /**
  * Created with IntelliJ IDEA.
@@ -11,7 +11,7 @@ import gnu.trove.map.TObjectDoubleMap;
  */
 public abstract class FeatureCacher {
 
-    public abstract TObjectDoubleMap<String>[] getCachedFeatures(FeatureCacheKey key);
+    public abstract FeatureVector[] getCachedFeatures(FeatureCacheKey key);
 
-    public abstract void addFeaturesToCache(FeatureCacheKey key, TObjectDoubleMap<String>... features);
+    public abstract void addFeaturesToCache(FeatureCacheKey key, FeatureVector... features);
 }

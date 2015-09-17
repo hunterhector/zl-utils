@@ -16,6 +16,8 @@ import java.util.Set;
 public class Configuration {
     private Properties properties;
 
+    private File configFile;
+
     public Configuration() {
         properties = new Properties();
     }
@@ -30,6 +32,7 @@ public class Configuration {
         }
         properties = new Properties();
         properties.load(new FileInputStream(configurationFile));
+        this.configFile = configurationFile;
     }
 
     public void add(Object key, Object value) {
@@ -107,6 +110,10 @@ public class Configuration {
         }
 
         return results;
+    }
+
+    public File getConfigFile() {
+        return configFile;
     }
 
 }

@@ -1,6 +1,6 @@
 package edu.cmu.cs.lti.learning.cache;
 
-import gnu.trove.map.TObjectDoubleMap;
+import edu.cmu.cs.lti.learning.model.FeatureVector;
 import org.apache.commons.lang3.SerializationUtils;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -26,8 +26,7 @@ public class CrfFeatureCacher extends FeatureCacher {
 
     // Layout of this :
     // Table map from <sequence id, token id> to <feature no state, features need state>.
-    private HashMap<Pair<Integer, Integer>, TObjectDoubleMap<String>[]>
-            featuresOfDocument;
+    private HashMap<Pair<Integer, Integer>, FeatureVector[]> featuresOfDocument;
 
     private String currentDocumentKey = null;
 
@@ -60,7 +59,7 @@ public class CrfFeatureCacher extends FeatureCacher {
     }
 
     @Override
-    public TObjectDoubleMap<String>[] getCachedFeatures(FeatureCacheKey key) {
+    public FeatureVector[] getCachedFeatures(FeatureCacheKey key) {
 //        logger.debug(String.format("Loading feature from %s", key.toString()));
         if (key instanceof CrfState) {
             CrfState k = (CrfState) key;
@@ -69,7 +68,7 @@ public class CrfFeatureCacher extends FeatureCacher {
         return null;
     }
 
-    private TObjectDoubleMap<String>[] getCachedFV(String documentKey, int sequenceId, int tokenId) {
+    private FeatureVector[] getCachedFV(String documentKey, int sequenceId, int tokenId) {
         if (loadDocumentFeatures(documentKey)) {
             return featuresOfDocument.get(Pair.with(sequenceId, tokenId));
         }
@@ -77,7 +76,7 @@ public class CrfFeatureCacher extends FeatureCacher {
     }
 
     @Override
-    public void addFeaturesToCache(FeatureCacheKey key, TObjectDoubleMap<String>... features) {
+    public void addFeaturesToCache(FeatureCacheKey key, FeatureVector... features) {
         if (key instanceof CrfState) {
             CrfState k = (CrfState) key;
             featuresOfDocument.put(Pair.with(k.getSequenceId(), k.getTokenId()), features);

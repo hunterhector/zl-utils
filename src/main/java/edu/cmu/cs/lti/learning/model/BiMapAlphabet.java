@@ -1,7 +1,10 @@
 package edu.cmu.cs.lti.learning.model;
 
 import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -13,13 +16,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class BiMapAlphabet extends FeatureAlphabet {
     private static final long serialVersionUID = -4988790738326139279L;
-    BiMap<String, Integer> featureBiMap;
+    private BiMap<String, Integer> featureBiMap;
 
-    AtomicInteger featureIdCounter;
+    private AtomicInteger featureIdCounter;
 
     public BiMapAlphabet() {
         super();
         featureIdCounter = new AtomicInteger();
+        featureBiMap = HashBiMap.create();
     }
 
     @Override
@@ -28,7 +32,7 @@ public class BiMapAlphabet extends FeatureAlphabet {
         if (featureBiMap.containsKey(featureName)) {
             featureId = featureBiMap.get(featureName);
         } else {
-            featureId = featureIdCounter.incrementAndGet();
+            featureId = featureIdCounter.getAndIncrement();
             featureBiMap.put(featureName, featureId);
         }
         return featureId;
@@ -47,5 +51,9 @@ public class BiMapAlphabet extends FeatureAlphabet {
     @Override
     public int getAlphabetSize() {
         return featureBiMap.size();
+    }
+
+    public Set<Map.Entry<String, Integer>> getAllFeatureNames() {
+        return featureBiMap.entrySet();
     }
 }

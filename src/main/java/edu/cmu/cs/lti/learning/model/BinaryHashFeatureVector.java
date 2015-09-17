@@ -11,18 +11,18 @@ import gnu.trove.map.hash.TIntIntHashMap;
  *
  * @author Zhengzhong Liu
  */
-public class BinaryFeatureVector extends HashedFeatureVector {
+public class BinaryHashFeatureVector extends FeatureVector {
     private static final long serialVersionUID = -5564329295580504903L;
 
     TIntIntMap fv;
 
-    public BinaryFeatureVector(FeatureAlphabet alphabet) {
+    public BinaryHashFeatureVector(FeatureAlphabet alphabet) {
         super(alphabet);
         fv = new TIntIntHashMap();
     }
 
     @Override
-    public boolean addFeature(int featureIndex, double featureValue) {
+    public boolean addFeatureInternal(int featureIndex, double featureValue) {
         int adjustedValue = fv.adjustOrPutValue(featureIndex, 1, 1);
         return adjustedValue == featureValue;
     }

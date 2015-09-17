@@ -4,9 +4,7 @@ import edu.cmu.cs.lti.learning.cache.CrfFeatureCacher;
 import edu.cmu.cs.lti.learning.cache.CrfState;
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.training.SequenceDecoder;
-import gnu.trove.iterator.TObjectDoubleIterator;
-import gnu.trove.map.TObjectDoubleMap;
-import gnu.trove.map.hash.TObjectDoubleHashMap;
+import edu.cmu.cs.lti.utils.DebugUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +21,7 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     private SequenceSolution solution;
 
-    private HashedFeatureVector bestVector;
+    private BiKeyFeatureVector bestVector;
 
     private CrfFeatureCacher cacher;
 
@@ -45,20 +43,25 @@ public class ViterbiDecoder extends SequenceDecoder {
         this.kBest = kBest;
     }
 
-    private HashedFeatureVector newFeatureVector() {
-        return useBinary ? new BinaryFeatureVector(featureAlphabet) : new RealValueFeatureVector(featureAlphabet);
+    private FeatureVector newFeatureVector() {
+        return useBinary ? new BinaryHashFeatureVector(featureAlphabet) : new RealValueHashFeatureVector
+                (featureAlphabet);
+    }
+
+    private BiKeyFeatureVector newBikeyFeatureVector() {
+        return new BiKeyFeatureVector(classAlphabet, featureAlphabet, useBinary);
     }
 
     @Override
-    public void decode(ChainFeatureExtractor extractor, AveragedWeightVector averagedWeightVector, int
-            sequenceLength, double lagrangian, CrfState key) {
+    public void decode(ChainFeatureExtractor extractor, BiKeyWeightVector weightVector, int
+            sequenceLength, double lagrangian, CrfState key, boolean useAverage) {
         solution = new SequenceSolution(classAlphabet, sequenceLength, kBest);
 
-        final HashedFeatureVector[] currentFeatureVectors = new HashedFeatureVector[classAlphabet.size()];
-        final HashedFeatureVector[] previousColFeatureVectors = new HashedFeatureVector[classAlphabet.size()];
+        final BiKeyFeatureVector[] currentFeatureVectors = new BiKeyFeatureVector[classAlphabet.size()];
+        final BiKeyFeatureVector[] previousColFeatureVectors = new BiKeyFeatureVector[classAlphabet.size()];
 
         for (int i = 0; i < currentFeatureVectors.length; i++) {
-            currentFeatureVectors[i] = newFeatureVector();
+            currentFeatureVectors[i] = newBikeyFeatureVector();
         }
 
         for (; !solution.finished(); solution.advance()) {
@@ -67,20 +70,22 @@ public class ViterbiDecoder extends SequenceDecoder {
                 continue;
             }
 
-//            logger.info("Decoding " + sequenceIndex);
-
             key.setTokenId(sequenceIndex);
 
-            TObjectDoubleMap<String> featuresNoState;
-            TObjectDoubleMap<String> featuresNeedForState;
+            // Raw feature vector extracted.
+//            TObjectDoubleMap<String> featuresNoState;
+//            TObjectDoubleMap<String> featuresNeedForState;
 
-            TObjectDoubleMap<String>[] allBaseFeatures = null;
+            FeatureVector featuresNoState;
+            FeatureVector featuresNeedForState;
+
+            FeatureVector[] allBaseFeatures = null;
             if (cacher != null) {
                 allBaseFeatures = cacher.getCachedFeatures(key);
             }
             if (allBaseFeatures == null) {
-                featuresNoState = new TObjectDoubleHashMap<>();
-                featuresNeedForState = new TObjectDoubleHashMap<>();
+                featuresNoState = newFeatureVector();
+                featuresNeedForState = newFeatureVector();
                 extractor.extract(sequenceIndex, featuresNoState, featuresNeedForState);
                 if (cacher != null) {
                     cacher.addFeaturesToCache(key, featuresNoState, featuresNeedForState);
@@ -92,50 +97,53 @@ public class ViterbiDecoder extends SequenceDecoder {
 
             System.arraycopy(currentFeatureVectors, 0, previousColFeatureVectors, 0, previousColFeatureVectors.length);
             for (int i = 0; i < currentFeatureVectors.length; i++) {
-                currentFeatureVectors[i] = newFeatureVector();
+                currentFeatureVectors[i] = newBikeyFeatureVector();
             }
 
             // Fill up lattice score for each of class in the current column.
             solution.getCurrentPossibleClassIndices().forEach(classIndex -> {
-//                logger.info("Decoding class index " + classIndex);
-                String currentClass = classAlphabet.getClassName(classIndex);
-
                 // Features that only depend on the current state.
-                HashedFeatureVector localStateFeatures = newFeatureVector();
-                for (TObjectDoubleIterator<String> iter = featuresNoState.iterator(); iter.hasNext(); ) {
-                    iter.advance();
-                    localStateFeatures.addFeature(iter.key(), currentClass, iter.value());
+
+                // Append state labels to raw features with lazy vector.
+//                FeatureVector localStateFeatures = newLazyFeatureVector();
+//                addLocalFeatures(featuresNoState, localStateFeatures, classIndex);
+
+                double currentStateFeatureScore = useAverage ? weightVector.dotProdAver(featuresNoState,
+                        classIndex) : weightVector.dotProd(featuresNoState, classIndex);
+
+                if (currentStateFeatureScore != 0) {
+                    logger.info("Score at class " + classIndex + " at " + sequenceIndex + " is " +
+                            currentStateFeatureScore);
                 }
-                double currentStateFeatureScore = averagedWeightVector.dotProd(localStateFeatures);
-                currentFeatureVectors[classIndex].extend(localStateFeatures);
 
                 MutableInt argmaxPreviousState = new MutableInt(-1);
-                final HashedFeatureVector[] bestStateDependentFeatures = {null};
+//                final FeatureVector[] bestStateDependentFeatures = {null};
 
                 // Check which previous state gives the best score.
                 solution.getPreviousPossibleClassIndices().forEach(prevState -> {
-//                    logger.info("Possible previous state is " + prevState + " for sequence " + sequenceIndex);
+                    // Append state labels (including prev) to raw features with laze vector.
+                    // NOTE: this inner loop is expensive, so we use lazy fv, and do not consolidate it. It is actually
+                    // correct because features we read from a map are unique (without considering hash collisions)
+//                    FeatureVector prevStateDependFeatures = newLazyFeatureVector();
 
-                    HashedFeatureVector prevStateDependFeatures = newFeatureVector();
-
-                    String prevStateName = classAlphabet.getClassName(prevState); // more readable.
-
-                    for (TObjectDoubleIterator<String> iter = featuresNeedForState.iterator(); iter.hasNext(); ) {
-                        iter.advance();
-                        prevStateDependFeatures.addFeature(iter.key() + "_Si-1=" + prevStateName, currentClass, iter
-                                .value());
-                    }
+                    // TODO this particular line is taking too much time.
+//                    getPreviousStateDependentFeatures(featuresNeedForState, prevStateDependFeatures, prevState,
+//                            classIndex);
 
                     for (SequenceSolution.LatticeCell previousBest : solution.getPreviousBests(prevState)) {
-                        double newEdgeScore = averagedWeightVector.dotProd(prevStateDependFeatures) +
-                                currentStateFeatureScore;
+                        double newEdgeScore = useAverage ?
+                                weightVector.dotProdAver(featuresNeedForState, classIndex, prevState) +
+                                        currentStateFeatureScore :
+                                weightVector.dotProd(featuresNeedForState, classIndex, prevState) +
+                                        currentStateFeatureScore;
 
                         int addResult = solution.scoreNewEdge(classIndex, previousBest, newEdgeScore);
                         if (addResult == 1) {
                             // The new score is the best.
-                            bestStateDependentFeatures[0] = prevStateDependFeatures;
+//                            bestStateDependentFeatures[0] = prevStateDependFeatures;
                             argmaxPreviousState.setValue(prevState);
-//                            logger.info("Best prev state is now " + prevStateName);
+                            logger.info("Best prev state is now " + classAlphabet.getClassName(prevState) + " for " +
+                                    sequenceIndex);
                         } else if (addResult == -1) {
                             // The new score is worse than the worst, i.e. rejected by the heap. We don't
                             // need to check any scores that is worse than this.
@@ -144,13 +152,16 @@ public class ViterbiDecoder extends SequenceDecoder {
                     }
                 });
 
-                // Add feature vector from previous state, also added new features that depend on previous state.
+                // Add feature vector from previous state, also added new features of current state.
+                currentFeatureVectors[classIndex].extend(featuresNoState, classIndex);
                 currentFeatureVectors[classIndex].extend(previousColFeatureVectors[argmaxPreviousState.getValue()]);
-                currentFeatureVectors[classIndex].extend(bestStateDependentFeatures[0]);
+                currentFeatureVectors[classIndex].extend(featuresNeedForState, classIndex, argmaxPreviousState
+                        .getValue());
 //                logger.info("Setting current feature vector at " + sequenceIndex);
             });
         }
         solution.backTrace();
+        DebugUtils.pause();
 
 //        for (HashedFeatureVector currentFeatureVector : currentFeatureVectors) {
 //            logger.info(currentFeatureVector.toString());
@@ -162,6 +173,14 @@ public class ViterbiDecoder extends SequenceDecoder {
 
 //        System.out.println(solution.showBestBackPointerMap());
 //        DebugUtils.pause();
+
+//        logger.info("Cumulative feature extraction time is " + featureStopWatch.getTime());
+//        logger.info("Cumulative previous state feature label time is " + previousAddToDepWatch.getTime());
+//        logger.info("Cumulative current state feature label time is " + localFeatureWatch.getTime());
+//        logger.info("Cumulative add to previous state time is " + addToLazyVectorWatch.getTime());
+//        logger.info("Previous label method calling count is " + previousLabelMethodCallCounter);
+//        logger.info("Previous state execution count is " + previousLabelLoopCounter);
+
     }
 
     @Override
@@ -170,34 +189,75 @@ public class ViterbiDecoder extends SequenceDecoder {
     }
 
     @Override
-    public HashedFeatureVector getBestDecodingFeatures() {
+    public BiKeyFeatureVector getBestDecodingFeatures() {
         return bestVector;
     }
 
     @Override
-    public HashedFeatureVector getSolutionFeatures(ChainFeatureExtractor extractor, SequenceSolution solution) {
-        HashedFeatureVector fv = newFeatureVector();
+    public BiKeyFeatureVector getSolutionFeatures(ChainFeatureExtractor extractor, SequenceSolution solution) {
+//        logger.info("Extracting solution features from data");
+
+        BiKeyFeatureVector fv = newBikeyFeatureVector();
 
         for (int i = 0; i < solution.getSequenceLength(); i++) {
-            TObjectDoubleMap<String> featuresNoState = new TObjectDoubleHashMap<>();
-            TObjectDoubleMap<String> featuresNeedForState = new TObjectDoubleHashMap<>();
+            FeatureVector featuresNoState = newFeatureVector();
+            FeatureVector featuresNeedForState = newFeatureVector();
 
-            String currentClass = classAlphabet.getClassName(solution.getClassAt(i));
-
-            String previousState = i == 0 ? classAlphabet.getOutsideClass() : classAlphabet.getClassName(solution
-                    .getClassAt(i - 1));
             extractor.extract(i, featuresNoState, featuresNeedForState);
 
-            for (TObjectDoubleIterator<String> iter = featuresNoState.iterator(); iter.hasNext(); ) {
-                iter.advance();
-                fv.addFeature(iter.key(), currentClass, iter.value());
-            }
+            int classIndex = solution.getClassAt(i);
+            int previousStateIndex = i == 0 ? classAlphabet.getOutsideClassIndex() : solution.getClassAt(i - 1);
 
-            for (TObjectDoubleIterator<String> iter = featuresNeedForState.iterator(); iter.hasNext(); ) {
-                iter.advance();
-                fv.addFeature(iter.key() + "_Si-1" + previousState, currentClass, iter.value());
-            }
+            fv.extend(featuresNoState, classIndex);
+            fv.extend(featuresNeedForState, previousStateIndex, classIndex);
         }
+
+//        logger.info("Done extracting solution feature");
         return fv;
     }
+
+//    private void addLocalFeatures(TObjectDoubleMap<String> featuresNoState, FeatureVector localStateFeatures,
+//                                  int classIndex) {
+//        localFeatureWatch.resume();
+////        String currentClass = classAlphabet.getClassName(classIndex);
+//        for (String className : classAlphabet.getSplittedClassName(classIndex)) {
+//            for (TObjectDoubleIterator<String> iter = featuresNoState.iterator(); iter.hasNext(); ) {
+//                iter.advance();
+//                localStateFeatures.addFeature(iter.key(), className, iter.value());
+//            }
+//        }
+//        localFeatureWatch.suspend();
+//    }
+//
+//    // This part is time consuming
+//    private void getPreviousStateDependentFeatures(TObjectDoubleMap<String> featuresNeedForState, FeatureVector
+//            prevStateDependFeatures, int prevState, int classIndex) {
+//        previousAddToDepWatch.resume();
+//        List<String> allPrevStateName = classAlphabet.getSplittedClassName(prevState);
+//        List<String> allCurrentStateName = classAlphabet.getSplittedClassName(classIndex);
+//
+//        previousLabelMethodCallCounter++;
+//
+//        for (String prevStateName : allPrevStateName) {
+//            // Conjoin features with previous state label only when previous is not "NoneOfAbove".
+//            if (!prevStateName.equals(classAlphabet.getNoneOfTheAboveClass())) {
+//                for (TObjectDoubleIterator<String> iter = featuresNeedForState.iterator(); iter.hasNext(); ) {
+//                    iter.advance();
+//                    for (String currentClass : allCurrentStateName) {
+//                        addToLazyVectorWatch.resume();
+////                        prevStateDependFeatures.addFeature(iter.key() + "_Si-1=" + prevStateName,
+////                                currentClass, iter.value());
+//                        // Features fire when this state is equal to previous state.
+////                        if (prevStateName.equals(currentClass)) {
+////                            prevStateDependFeatures.addFeature(iter.key() + "_Si-1=Si", currentClass, iter.value());
+////                        }
+//                        previousLabelLoopCounter++;
+//                        addToLazyVectorWatch.suspend();
+//                    }
+//                }
+//            }
+//        }
+//
+//        previousAddToDepWatch.suspend();
+//    }
 }

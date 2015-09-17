@@ -50,7 +50,7 @@ public class HashAlphabet extends FeatureAlphabet {
 
         int alphabetSize = (int) Math.pow(2, alphabetBits);
 
-        this.storeReadable = true;
+        this.storeReadable = storeReadable;
         this.alphabetSize = alphabetSize;
         this.hashMask = alphabetSize - 1;
         logger.info(String.format("Feature Alphabet initialized with size %d", alphabetSize));

@@ -12,14 +12,14 @@ import java.io.Serializable;
  *
  * @author Zhengzhong Liu
  */
-public abstract class HashedFeatureVector implements Serializable {
+public abstract class FeatureVector implements Serializable {
     private static final long serialVersionUID = -6736949803936456446L;
 
-    private FeatureAlphabet alphabet;
+    protected FeatureAlphabet alphabet;
 
-    private int featureSize;
+    protected int featureSize;
 
-    public HashedFeatureVector(FeatureAlphabet alphabet) {
+    public FeatureVector(FeatureAlphabet alphabet) {
         this.alphabet = alphabet;
     }
 
@@ -33,29 +33,33 @@ public abstract class HashedFeatureVector implements Serializable {
         void next();
     }
 
-    public int addFeature(String featureName, String tag, double featureValue) {
-        if (addFeature(alphabet.getFeatureId(featureName + ":Ti=" + tag), featureValue)) {
+    public int addFeature(String featureName, double featureValue) {
+        return addFeature(alphabet.getFeatureId(featureName), featureValue);
+    }
+
+    public int addFeature(int featureIndex, double featureValue) {
+        if (addFeatureInternal(featureIndex, featureValue)) {
             featureSize++;
         }
         return featureSize;
     }
 
-    public abstract boolean addFeature(int featureIndex, double featureValue);
+    protected abstract boolean addFeatureInternal(int featureIndex, double featureValue);
 
-    public void extend(HashedFeatureVector vectorToAdd) {
+    public void extend(FeatureVector vectorToAdd) {
         for (FeatureIterator iter = vectorToAdd.featureIterator(); iter.hasNext(); ) {
             iter.next();
-            addFeature(iter.featureIndex(), iter.featureValue());
+            addFeatureInternal(iter.featureIndex(), iter.featureValue());
         }
     }
 
-    public void diff(HashedFeatureVector vectorToDiff, HashedFeatureVector resultVector) {
+    public void diff(FeatureVector vectorToDiff, FeatureVector resultVector) {
         TIntSet overlappedFeatures = new TIntHashSet();
         for (FeatureIterator iter = vectorToDiff.featureIterator(); iter.hasNext(); ) {
             iter.next();
             double thisValue = this.getFeatureValue(iter.featureIndex());
             if (thisValue != iter.featureValue()) {
-                resultVector.addFeature(iter.featureIndex(), thisValue - iter.featureValue());
+                resultVector.addFeatureInternal(iter.featureIndex(), thisValue - iter.featureValue());
             }
             overlappedFeatures.add(iter.featureIndex());
         }
@@ -64,7 +68,7 @@ public abstract class HashedFeatureVector implements Serializable {
             iter.next();
 
             if (!overlappedFeatures.contains(iter.featureIndex())) {
-                resultVector.addFeature(iter.featureIndex(), iter.featureValue());
+                resultVector.addFeatureInternal(iter.featureIndex(), iter.featureValue());
             }
         }
     }
