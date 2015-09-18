@@ -142,10 +142,8 @@ public class ViterbiDecoder extends SequenceDecoder {
 
                 // Adding features for the new cell.
                 currentFeatureVectors[classIndex].extend(featuresNoState, classIndex);
-
                 // Adding features for the edge.
                 currentFeatureVectors[classIndex].extend(featuresNeedForState, classIndex, bestPrev);
-
                 // Taking features from previous best cell.
                 currentFeatureVectors[classIndex].extend(previousColFeatureVectors[bestPrev]);
 

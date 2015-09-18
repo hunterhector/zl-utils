@@ -3,6 +3,8 @@ package edu.cmu.cs.lti.learning.model;
 import com.google.common.collect.Table;
 import gnu.trove.iterator.TIntObjectIterator;
 import org.apache.commons.lang3.SerializationUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -20,6 +22,8 @@ import java.util.function.Consumer;
  */
 public class BiKeyWeightVector implements Serializable {
     private static final long serialVersionUID = 5181873403599233786L;
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private AveragedWeightVector[] unikeyWeights;
 
@@ -114,23 +118,27 @@ public class BiKeyWeightVector implements Serializable {
     }
 
     private void consolidate() {
+        logger.info("Consolidating weights.");
         applyToAll(AveragedWeightVector::consolidate);
     }
 
-
     public void deconsolidate() {
+        logger.info("Deconsolidating weights.");
         applyToAll(AveragedWeightVector::deconsolidate);
     }
 
-
     private void applyToAll(Consumer<AveragedWeightVector> oper) {
         for (AveragedWeightVector unikeyWeight : unikeyWeights) {
-            oper.accept(unikeyWeight);
+            if (unikeyWeight != null) {
+                oper.accept(unikeyWeight);
+            }
         }
 
         for (AveragedWeightVector[] bikeyWeight : bikeyWeights) {
             for (AveragedWeightVector aBikeyWeight : bikeyWeight) {
-                oper.accept(aBikeyWeight);
+                if (aBikeyWeight != null) {
+                    oper.accept(aBikeyWeight);
+                }
             }
         }
     }

@@ -1,15 +1,13 @@
 package edu.cmu.cs.lti.learning.cache;
 
 import edu.cmu.cs.lti.learning.model.FeatureVector;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SerializationUtils;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.*;
 import java.util.HashMap;
 
 /**
@@ -32,7 +30,12 @@ public class CrfFeatureCacher extends FeatureCacher {
 
     private File featureCacheDirectory;
 
-    public CrfFeatureCacher(File cachingDirectory) {
+    public CrfFeatureCacher(File cachingDirectory, boolean invalidate) throws IOException {
+        if (invalidate && cachingDirectory.exists()) {
+            FileUtils.deleteDirectory(cachingDirectory);
+            logger.info("Cache invalidated.");
+        }
+
         if (!cachingDirectory.exists()) {
             cachingDirectory.mkdirs();
         } else if (!cachingDirectory.isDirectory()) {
@@ -49,10 +52,7 @@ public class CrfFeatureCacher extends FeatureCacher {
     public void flush(String documentKey) throws FileNotFoundException {
         File documentCache = new File(featureCacheDirectory, documentKey + normal_suffix);
 
-//        logger.debug("Try to flush to : " + documentCache.getAbsolutePath());
-
         if (!documentCache.exists()) {
-//            logger.debug("Flushing to " + documentCache.getPath());
             SerializationUtils.serialize(featuresOfDocument, new FileOutputStream(documentCache));
             featuresOfDocument = new HashMap<>();
         }
@@ -87,17 +87,14 @@ public class CrfFeatureCacher extends FeatureCacher {
         // If not loaded or loaded a different document
         if (currentDocumentKey == null || !currentDocumentKey.equals(documentKey)) {
             if (loadFeaturesFromFile(documentKey)) {
-//                logger.debug("Read form document : " + documentKey);
                 // If loaded success.
                 currentDocumentKey = documentKey;
                 return true;
             } else {
-//                logger.debug("Load failed.");
                 return false;
             }
         }
 
-//        logger.debug("Document already loaded before.");
         // Loaded with this document.
         return true;
     }
@@ -112,7 +109,7 @@ public class CrfFeatureCacher extends FeatureCacher {
                 featuresOfDocument = SerializationUtils.deserialize(new FileInputStream(documentCache));
                 return true;
             } catch (FileNotFoundException e) {
-                // Probably unless someone delete it while reading.
+                // Probably not gonna happen unless someone delete it while reading.
                 return false;
             }
         }

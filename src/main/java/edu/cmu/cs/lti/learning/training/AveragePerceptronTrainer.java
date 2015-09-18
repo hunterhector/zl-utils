@@ -2,7 +2,6 @@ package edu.cmu.cs.lti.learning.training;
 
 import edu.cmu.cs.lti.learning.cache.CrfState;
 import edu.cmu.cs.lti.learning.model.*;
-import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,33 +21,22 @@ public class AveragePerceptronTrainer {
     private BiKeyWeightVector weightVector;
     private double stepSize;
 
-    private ClassAlphabet classAlphabet;
-
-    private StopWatch decodeStopwatch = new StopWatch();
-
     /**
      * A vanilla average perceptron, with a fixed step size.
      *
-     * @param decoder
-     * @param stepSize
+     * @param decoder  The sequence decoder.
+     * @param stepSize A fixed step size for each update.
      */
     public AveragePerceptronTrainer(SequenceDecoder decoder, ClassAlphabet classAlphabet, double stepSize, int
             featureDimension) {
         this.decoder = decoder;
         weightVector = new BiKeyWeightVector(classAlphabet, featureDimension);
         this.stepSize = stepSize;
-        this.classAlphabet = classAlphabet;
-
-        decodeStopwatch.start();
-        decodeStopwatch.suspend();
     }
 
     public double trainNext(SequenceSolution goldSolution, BiKeyFeatureVector goldFv, ChainFeatureExtractor extractor,
                             double lagrangian, CrfState key) {
-        decodeStopwatch.resume();
         decoder.decode(extractor, weightVector, goldSolution.getSequenceLength(), lagrangian, key);
-        decodeStopwatch.suspend();
-//        logger.info("Cumulative decode time is " + decodeStopwatch.getTime());
         SequenceSolution prediction = decoder.getDecodedPrediction();
         double loss = goldSolution.loss(prediction);
 

@@ -73,7 +73,6 @@ public class ArrayBasedAveragedWeightVector extends AveragedWeightVector {
     @Override
     void consolidate() {
         if (!consolidated) {
-            logger.info("Consolidating weights.");
             for (int i = 0; i < averagedWeights.length; i++) {
                 averagedWeights[i] /= updateCounts;
             }
@@ -84,7 +83,6 @@ public class ArrayBasedAveragedWeightVector extends AveragedWeightVector {
     @Override
     void deconsolidate() {
         if (consolidated) {
-            logger.info("Deconsolidating weights.");
             for (int i = 0; i < averagedWeights.length; i++) {
                 averagedWeights[i] *= updateCounts;
             }
