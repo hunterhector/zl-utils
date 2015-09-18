@@ -22,6 +22,7 @@ public class AveragePerceptronTrainer {
     private BiKeyWeightVector weightVector;
     private double stepSize;
 
+    private ClassAlphabet classAlphabet;
 
     private StopWatch decodeStopwatch = new StopWatch();
 
@@ -36,6 +37,7 @@ public class AveragePerceptronTrainer {
         this.decoder = decoder;
         weightVector = new BiKeyWeightVector(classAlphabet, featureDimension);
         this.stepSize = stepSize;
+        this.classAlphabet = classAlphabet;
 
         decodeStopwatch.start();
         decodeStopwatch.suspend();
@@ -50,9 +52,10 @@ public class AveragePerceptronTrainer {
         SequenceSolution prediction = decoder.getDecodedPrediction();
         double loss = goldSolution.loss(prediction);
 
-        logger.debug(goldSolution.toString());
-        logger.debug(prediction.toString());
-//
+//        logger.debug("Gold:");
+//        logger.debug(goldSolution.toString());
+//        logger.debug("Prediction:");
+//        logger.debug(prediction.toString());
 //        DebugUtils.pause();
 
         if (loss != 0) {
@@ -66,15 +69,15 @@ public class AveragePerceptronTrainer {
         weightVector.updateWeightBy(goldFv, stepSize);
         weightVector.updateWeightBy(predictedFv, -stepSize);
 
-
-//        logger.info("Gold feature is:");
-//        logger.info(goldFv.readableString());
+//        logger.info("Gold feature (uni) is:");
+//        logger.info(goldFv.readableUniVector());
 //
 //        logger.info("Prediction feature is:");
-//        logger.info(predictedFv.readableString());
-//
+//        logger.info(predictedFv.readableUniVector());
+
 //        logger.info("Difference is :");
 //        logger.info(diffVector.readableString());
+
 //        DebugUtils.pause();
     }
 

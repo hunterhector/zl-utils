@@ -37,19 +37,34 @@ public abstract class FeatureVector implements Serializable {
         return addFeature(alphabet.getFeatureId(featureName), featureValue);
     }
 
-    public int addFeature(int featureIndex, double featureValue) {
+    /**
+     * Add a feature to the feature vector by directly accessing the feature index. We normally do not want to access
+     * it outside because feature index should come from a feature alphabet.
+     *
+     * @param featureIndex The feature index.
+     * @param featureValue The value of the feature.
+     * @return The resulting number of features in this feature vector.
+     */
+    protected int addFeature(int featureIndex, double featureValue) {
         if (addFeatureInternal(featureIndex, featureValue)) {
             featureSize++;
         }
         return featureSize;
     }
 
+    /**
+     * Add a feature by index.
+     *
+     * @param featureIndex The feature index to add.
+     * @param featureValue The feature value to add.
+     * @return True if the feature is a new one.
+     */
     protected abstract boolean addFeatureInternal(int featureIndex, double featureValue);
 
     public void extend(FeatureVector vectorToAdd) {
         for (FeatureIterator iter = vectorToAdd.featureIterator(); iter.hasNext(); ) {
             iter.next();
-            addFeatureInternal(iter.featureIndex(), iter.featureValue());
+            addFeature(iter.featureIndex(), iter.featureValue());
         }
     }
 
@@ -59,7 +74,7 @@ public abstract class FeatureVector implements Serializable {
             iter.next();
             double thisValue = this.getFeatureValue(iter.featureIndex());
             if (thisValue != iter.featureValue()) {
-                resultVector.addFeatureInternal(iter.featureIndex(), thisValue - iter.featureValue());
+                resultVector.addFeature(iter.featureIndex(), thisValue - iter.featureValue());
             }
             overlappedFeatures.add(iter.featureIndex());
         }
@@ -68,7 +83,7 @@ public abstract class FeatureVector implements Serializable {
             iter.next();
 
             if (!overlappedFeatures.contains(iter.featureIndex())) {
-                resultVector.addFeatureInternal(iter.featureIndex(), iter.featureValue());
+                resultVector.addFeature(iter.featureIndex(), iter.featureValue());
             }
         }
     }

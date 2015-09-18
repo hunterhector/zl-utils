@@ -17,7 +17,7 @@ import java.io.Serializable;
 public abstract class FeatureAlphabet implements Serializable {
     private static final long serialVersionUID = -912015198635250229L;
 
-    public FeatureAlphabet() {
+    protected FeatureAlphabet() {
 
     }
 

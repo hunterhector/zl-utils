@@ -21,18 +21,31 @@ public class HashAlphabet extends FeatureAlphabet {
 
     private static final long serialVersionUID = 8684276781666018103L;
 
-    private HashFunction hasher = Hashing.murmur3_32();
+    private final HashFunction hasher = Hashing.murmur3_32();
 
-    private TObjectIntMap<String>[] featureCounters;
+    private final TObjectIntMap<String>[] featureCounters;
 
-    private boolean storeReadable;
+    private final boolean storeReadable;
 
-    private int alphabetSize = 0;
+    private final int alphabetSize;
 
-    private int hashMask;
+    private final int hashMask;
 
-    public HashAlphabet(int alphabetBits) {
-        this(alphabetBits, false);
+    private static HashAlphabet instance = null;
+
+    /**
+     * Get a default instance of the alphabet.
+     *
+     * @param alphabetBits  The power of 2 of this is the alphabet size, i.e. number of bits for feature.
+     * @param storeReadable If this is true, it will create a alphabet that also stores all feature names to integer id
+     *                      count. This will make the training about 25% slower.
+     * @return
+     */
+    public static HashAlphabet getInstance(int alphabetBits, boolean storeReadable) {
+        if (instance == null) {
+            instance = new HashAlphabet(alphabetBits, storeReadable);
+        }
+        return instance;
     }
 
     /**
@@ -44,6 +57,7 @@ public class HashAlphabet extends FeatureAlphabet {
      *                      count. This will make the training about25% slower.
      */
     public HashAlphabet(int alphabetBits, boolean storeReadable) {
+        super();
         if (alphabetBits >= 31) {
             throw new IllegalArgumentException("Alphabet size exceed the power of current Murmur");
         }
@@ -56,10 +70,10 @@ public class HashAlphabet extends FeatureAlphabet {
         logger.info(String.format("Feature Alphabet initialized with size %d", alphabetSize));
         logger.info(String.format("Feature Mask is %s", Integer.toBinaryString(hashMask)));
 
+        featureCounters = new TObjectIntMap[alphabetSize];
         if (storeReadable) {
-            logger.info("Alphabet will store feature name to hash value mappings.");
-//            hashValueStore = new TObjectIntHashMap<>();
-            featureCounters = new TObjectIntMap[alphabetSize];
+            logger.info("Alphabet will store feature name to hash value mappings. " +
+                    "This may take additional memory and make the process slower.");
         }
     }
 
@@ -139,7 +153,7 @@ public class HashAlphabet extends FeatureAlphabet {
 
     @Override
     public String getFeatureNameRepre(int featureIndex) {
-        return getMappedFeatureCounters(featureIndex);
+        return "<hashed>_" + getMappedFeatureCounters(featureIndex);
     }
 
     public int getAlphabetSize() {

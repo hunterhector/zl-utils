@@ -34,7 +34,6 @@ public class BiKeyFeatureVector implements Serializable {
     }
 
     public BiKeyFeatureVector(ClassAlphabet classAlphabet, FeatureAlphabet featureAlphabet, boolean isBinary) {
-        int classSize = classAlphabet.size();
         unikeyFv = new TIntObjectHashMap<>();
         bikeyFv = HashBasedTable.create();
         this.featureAlphabet = featureAlphabet;
@@ -70,7 +69,6 @@ public class BiKeyFeatureVector implements Serializable {
         FeatureVector thisFv;
         if (unikeyFv.containsKey(primaryKey)) {
             thisFv = unikeyFv.get(primaryKey);
-
         } else {
             thisFv = newFeatureVector();
             unikeyFv.put(primaryKey, thisFv);
@@ -83,7 +81,15 @@ public class BiKeyFeatureVector implements Serializable {
             toAddUniIter.advance();
             int addKey = toAddUniIter.key();
             FeatureVector addVector = toAddUniIter.value();
-            FeatureVector thisUniKeyFv = unikeyFv.containsKey(addKey) ? unikeyFv.get(addKey) : newFeatureVector();
+
+            FeatureVector thisUniKeyFv;
+
+            if (unikeyFv.containsKey(addKey)) {
+                thisUniKeyFv = unikeyFv.get(addKey);
+            } else {
+                thisUniKeyFv = newFeatureVector();
+                unikeyFv.put(addKey, thisUniKeyFv);
+            }
             thisUniKeyFv.extend(addVector);
         }
 
@@ -93,26 +99,38 @@ public class BiKeyFeatureVector implements Serializable {
             int row = toAddBiKeyFeature.getRowKey();
             int col = toAddBiKeyFeature.getColumnKey();
             FeatureVector toAddVector = toAddBiKeyFeature.getValue();
-            FeatureVector thisBiKeyFv = bikeyFv.contains(row, col) ? bikeyFv.get(row, col) : newFeatureVector();
+
+            FeatureVector thisBiKeyFv;
+
+            if (bikeyFv.contains(row, col)) {
+                thisBiKeyFv = bikeyFv.get(row, col);
+            } else {
+                thisBiKeyFv = newFeatureVector();
+                bikeyFv.put(row, col, thisBiKeyFv);
+            }
             thisBiKeyFv.extend(toAddVector);
         }
     }
 
-//    public void diff(BiKeyFeatureVector vectorToDiff, BiKeyFeatureVector resultVector) {
-//        for (int unikey = 0; unikey < vectorToDiff.unikeyFv.length; unikey++) {
-//            FeatureVector thisUnikeyFv = unikeyFv[unikey];
-//            resultVector.unikeyFv[unikey] = newFeatureVector();
-//            thisUnikeyFv.diff(vectorToDiff.unikeyFv[unikey], resultVector.unikeyFv[unikey]);
-//        }
-//
-//        for (int key1 = 0; key1 < vectorToDiff.bikeyFv.length; key1++) {
-//            for (int key2 = 0; key2 < vectorToDiff.bikeyFv[key1].length; key2++) {
-//                FeatureVector thisBikeyFv = bikeyFv[key1][key2];
-//                resultVector.bikeyFv[key1][key2] = newFeatureVector();
-//                thisBikeyFv.diff(vectorToDiff.bikeyFv[key1][key2], resultVector.bikeyFv[key1][key2]);
-//            }
-//        }
-//    }
+    // TODO check correctness before use.
+    public void diff(BiKeyFeatureVector vectorToDiff, BiKeyFeatureVector resultVector) {
+        for (TIntObjectIterator<FeatureVector> toDiffUniIter = vectorToDiff.unikeyIter(); toDiffUniIter.hasNext(); ) {
+            toDiffUniIter.advance();
+            FeatureVector thisUnikeyFv = unikeyFv.get(toDiffUniIter.key());
+            FeatureVector diffResultFv = newFeatureVector();
+            thisUnikeyFv.diff(toDiffUniIter.value(), diffResultFv);
+            resultVector.unikeyFv.put(toDiffUniIter.key(), diffResultFv);
+        }
+
+        for (Iterator<Table.Cell<Integer, Integer, FeatureVector>> toDiffBiIter = vectorToDiff.bikeyIter();
+             toDiffBiIter.hasNext(); ) {
+            Table.Cell<Integer, Integer, FeatureVector> toDiffCell = toDiffBiIter.next();
+            FeatureVector thisBikeyFv = bikeyFv.get(toDiffCell.getRowKey(), toDiffCell.getColumnKey());
+            FeatureVector diffResultFv = newFeatureVector();
+            thisBikeyFv.diff(toDiffCell.getValue(), diffResultFv);
+            resultVector.bikeyFv.put(toDiffCell.getRowKey(), toDiffCell.getColumnKey(), diffResultFv);
+        }
+    }
 
     public boolean isBinary() {
         return isBinary;
@@ -124,5 +142,16 @@ public class BiKeyFeatureVector implements Serializable {
 
     public FeatureAlphabet getFeatureAlphabet() {
         return featureAlphabet;
+    }
+
+    public String readableUniVector() {
+        StringBuilder sb = new StringBuilder();
+        for (TIntObjectIterator<FeatureVector> iter = unikeyIter(); iter.hasNext(); ) {
+            iter.advance();
+            sb.append("Feature at class ").append(classAlphabet.getClassName(iter.key())).append("\n");
+            sb.append(iter.value().readableString());
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }

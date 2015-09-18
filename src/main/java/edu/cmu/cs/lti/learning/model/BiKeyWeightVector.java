@@ -27,8 +27,16 @@ public class BiKeyWeightVector implements Serializable {
 
     private int featureDimension;
 
+
     public BiKeyWeightVector(ClassAlphabet classAlphabet, int featureDimension) {
         unikeyWeights = new AveragedWeightVector[classAlphabet.size()];
+
+        // These are the largest objects that stores feature weights. Initialize them first then we will probably be
+        // fine with memory usage.
+        for (int i = 0; i < unikeyWeights.length; i++) {
+            unikeyWeights[i] = new ArrayBasedAveragedWeightVector(featureDimension);
+        }
+
         bikeyWeights = new AveragedWeightVector[classAlphabet.size()][classAlphabet.size()];
         this.featureDimension = featureDimension;
     }
@@ -36,7 +44,7 @@ public class BiKeyWeightVector implements Serializable {
     public void updateWeightsBy(FeatureVector fv, int currentKey, double multiplier) {
         if (unikeyWeights[currentKey] == null) {
             unikeyWeights[currentKey] = new ArrayBasedAveragedWeightVector(featureDimension);
-            System.out.println("New uni weights for " + currentKey);
+//            System.out.println("New uni weights for " + currentKey);
         }
         unikeyWeights[currentKey].updateWeightsBy(fv, multiplier);
     }
@@ -44,7 +52,7 @@ public class BiKeyWeightVector implements Serializable {
     public void updateWeightsBy(FeatureVector fv, int currentKey, int previousKey, double multiplier) {
         if (bikeyWeights[currentKey][previousKey] == null) {
             bikeyWeights[currentKey][previousKey] = new HashBasedAveragedWeightVector();
-            System.out.println("New bi weights for " + currentKey + " " + previousKey);
+//            System.out.println("New bi weights for " + currentKey + " " + previousKey);
         }
         bikeyWeights[currentKey][previousKey].updateWeightsBy(fv, multiplier);
     }

@@ -23,7 +23,7 @@ public class RealValueHashFeatureVector extends FeatureVector {
     }
 
     @Override
-    public boolean addFeatureInternal(int featureIndex, double featureValue) {
+    protected boolean addFeatureInternal(int featureIndex, double featureValue) {
         double adjustedValue = fv.adjustOrPutValue(featureIndex, featureValue, featureValue);
         return adjustedValue == featureValue;
     }

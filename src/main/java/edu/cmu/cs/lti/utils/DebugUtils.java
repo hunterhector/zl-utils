@@ -1,7 +1,5 @@
 package edu.cmu.cs.lti.utils;
 
-import java.util.logging.Logger;
-
 /**
  * Created with IntelliJ IDEA.
  * User: zhengzhongliu
@@ -9,11 +7,11 @@ import java.util.logging.Logger;
  * Time: 3:43 PM
  */
 public class DebugUtils {
-    public static void printMemInfo(Logger logger) {
-        printMemInfo(logger, "");
+    public static String getMemInfo() {
+        return getMemInfo("");
     }
 
-    public static void printMemInfo(Logger logger, String msg) {
+    public static String getMemInfo(String msg) {
         // Get current size of heap in bytes
         double heapSize = Runtime.getRuntime().totalMemory() / (double) (1024 * 1024);
 
@@ -25,8 +23,8 @@ public class DebugUtils {
         // after garbage collection and decrease as new objects are created.
         double heapFreeSize = Runtime.getRuntime().freeMemory() / (double) (1024 * 1024);
 
-        logger.info(String.format("%s. Heap size: %.2f MB, Max Heap Size: %.2f MB, Free Heap Size: %.2f MB, Used " +
-                "Memory: %.2f MB", msg, heapSize, heapMaxSize, heapFreeSize, heapSize - heapFreeSize));
+        return String.format("%s. Heap size: %.2f MB, Max Heap Size: %.2f MB, Free Heap Size: %.2f MB, Used " +
+                "Memory: %.2f MB", msg, heapSize, heapMaxSize, heapFreeSize, heapSize - heapFreeSize);
     }
 
     public static void pause() {
