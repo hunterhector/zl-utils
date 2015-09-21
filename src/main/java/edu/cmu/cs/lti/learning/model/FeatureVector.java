@@ -72,7 +72,7 @@ public abstract class FeatureVector implements Serializable {
         TIntSet overlappedFeatures = new TIntHashSet();
         for (FeatureIterator iter = vectorToDiff.featureIterator(); iter.hasNext(); ) {
             iter.next();
-            double thisValue = this.getFeatureValue(iter.featureIndex());
+            double thisValue = this.getFeatureValue(iter.featureIndex()); // This will always return a value.
             if (thisValue != iter.featureValue()) {
                 resultVector.addFeature(iter.featureIndex(), thisValue - iter.featureValue());
             }

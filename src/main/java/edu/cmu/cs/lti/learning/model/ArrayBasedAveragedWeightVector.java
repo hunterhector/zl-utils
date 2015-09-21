@@ -1,8 +1,6 @@
 package edu.cmu.cs.lti.learning.model;
 
 import org.apache.commons.lang3.SerializationUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -18,18 +16,17 @@ import java.io.FileOutputStream;
 public class ArrayBasedAveragedWeightVector extends AveragedWeightVector {
     private static final long serialVersionUID = 7646416117744167293L;
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
     private double[] weights;
     private double[] averagedWeights;
-    private int updateCounts;
+    private int averageUpdateCount;
 
     private boolean consolidated;
 
-    public ArrayBasedAveragedWeightVector(int featureSize) {
+    public ArrayBasedAveragedWeightVector(int featureSize, int initialAverageUpdateCount) {
         weights = new double[featureSize];
         averagedWeights = new double[featureSize];
-        updateCounts = 0;
+        averageUpdateCount = initialAverageUpdateCount;
+        consolidated = false;
     }
 
     @Override
@@ -37,10 +34,20 @@ public class ArrayBasedAveragedWeightVector extends AveragedWeightVector {
         for (FeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
             iter.next();
             int index = iter.featureIndex();
+//            double before = weights[index];
             weights[index] += iter.featureValue() * multiplier;
-            averagedWeights[index] += weights[index];
+
+//            System.out.println("Updating " + fv.getAlphabet().getFeatureNameRepre(index) + " from " + before + " to "
+//                    + weights[index]);
         }
-        updateCounts++;
+    }
+
+    @Override
+    public void updateAverageWeight() {
+        for (int i = 0; i < weights.length; i++) {
+            averagedWeights[i] += weights[i];
+        }
+        averageUpdateCount++;
     }
 
     @Override
@@ -60,6 +67,24 @@ public class ArrayBasedAveragedWeightVector extends AveragedWeightVector {
         return sum;
     }
 
+    // TODO temporary verbose version
+    public double dotProd(FeatureVector fv, FeatureAlphabet alphabet) {
+        double sum = 0;
+        for (FeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
+            iter.next();
+            sum += weights[iter.featureIndex()] * iter.featureValue();
+            if (weights[iter.featureIndex()] != 0) {
+                System.out.println("Feature : " + alphabet.getFeatureNameRepre(iter.featureIndex()) + " has weight "
+                        + weights[iter.featureIndex()] + " multiply by value " + iter.featureValue()
+                        + " result is " + weights[iter.featureIndex()] * iter.featureValue());
+            }
+        }
+        if (sum != 0) {
+            System.out.println("Result Sum is " + sum);
+        }
+        return sum;
+    }
+
     @Override
     public double dotProdAver(FeatureVector fv) {
         double sum = 0;
@@ -73,8 +98,10 @@ public class ArrayBasedAveragedWeightVector extends AveragedWeightVector {
     @Override
     void consolidate() {
         if (!consolidated) {
-            for (int i = 0; i < averagedWeights.length; i++) {
-                averagedWeights[i] /= updateCounts;
+            if (this.averageUpdateCount != 0) {
+                for (int i = 0; i < averagedWeights.length; i++) {
+                    averagedWeights[i] /= averageUpdateCount;
+                }
             }
             consolidated = true;
         }
@@ -83,8 +110,10 @@ public class ArrayBasedAveragedWeightVector extends AveragedWeightVector {
     @Override
     void deconsolidate() {
         if (consolidated) {
-            for (int i = 0; i < averagedWeights.length; i++) {
-                averagedWeights[i] *= updateCounts;
+            if (this.averageUpdateCount != 0) {
+                for (int i = 0; i < averagedWeights.length; i++) {
+                    averagedWeights[i] *= averageUpdateCount;
+                }
             }
             consolidated = false;
         }

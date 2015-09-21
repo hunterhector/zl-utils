@@ -6,7 +6,6 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,56 +42,6 @@ public class SequenceSolution extends Solution {
 
     // K of the best K solution.
     private int bestK;
-
-    public class LatticeCell implements Serializable, Comparable<LatticeCell> {
-        private static final long serialVersionUID = 5198803127418485563L;
-
-        private double score;
-        private int classIndex;
-        private LatticeCell backPointer;
-
-        public int getClassIndex() {
-            return classIndex;
-        }
-
-        public double getScore() {
-            return score;
-        }
-
-        public LatticeCell getBackPointer() {
-            return backPointer;
-        }
-
-        public LatticeCell(double score, int classIndex, LatticeCell backPointer) {
-            this.score = score;
-            this.classIndex = classIndex;
-            this.backPointer = backPointer;
-        }
-
-        /**
-         * This is a reverse comparator, the greatest scored element will be treated as the least
-         *
-         * @param o The other cell.
-         * @return
-         */
-        @Override
-        public int compareTo(LatticeCell o) {
-            return new CompareToBuilder().append(o.score, score).build();
-        }
-
-        @Override
-        public String toString() {
-            return new ToStringBuilder(this).append(score).append(classIndex).toString();
-        }
-
-        public String shortString() {
-            return String.format("[%.2f,%d,%d]", score, classIndex, backPointer.classIndex);
-        }
-    }
-
-    public LatticeCell getEmptyCell() {
-        return new LatticeCell(0, classAlphabet.getOutsideClassIndex(), null);
-    }
 
     /**
      * Create a solution with existing sequence set, should be used for gold standard. Decoding support such as
@@ -136,6 +85,58 @@ public class SequenceSolution extends Solution {
         temporaryCells = new MinMaxPriorityQueue[classAlphabet.size()];
         latticeCells = new List[sequenceLength + 1][classAlphabet.size()];
         currentPosition = -1;
+    }
+
+
+    public class LatticeCell implements Serializable, Comparable<LatticeCell> {
+        private static final long serialVersionUID = 5198803127418485563L;
+
+        private double score;
+        private int classIndex;
+        private LatticeCell backPointer;
+
+        public int getClassIndex() {
+            return classIndex;
+        }
+
+        public double getScore() {
+            return score;
+        }
+
+        public LatticeCell getBackPointer() {
+            return backPointer;
+        }
+
+        public LatticeCell(double score, int classIndex, LatticeCell backPointer) {
+            this.score = score;
+            this.classIndex = classIndex;
+            this.backPointer = backPointer;
+        }
+
+        /**
+         * This is a reverse comparator, the greatest scored element will be treated as the least.
+         *
+         * @param o The other cell.
+         * @return Negative if this is larger, 0 if equal, positive if this is smaller.
+         */
+        @Override
+        public int compareTo(LatticeCell o) {
+            return new CompareToBuilder().append(o.score, score).build();
+        }
+
+        @Override
+        public String toString() {
+            return new ToStringBuilder(this).append(score).append(classIndex).toString();
+        }
+
+        public String shortString() {
+            return String.format("[%.2f,%s <- %s]", score, classAlphabet.getClassName(classIndex), classAlphabet
+                    .getClassName(backPointer.classIndex));
+        }
+    }
+
+    public LatticeCell getEmptyCell() {
+        return new LatticeCell(0, classAlphabet.getOutsideClassIndex(), null);
     }
 
     public boolean finished() {
@@ -214,6 +215,9 @@ public class SequenceSolution extends Solution {
      * @return
      */
     public int getClassAt(int k, int classIndex) {
+        if (classIndex >= solution[k].length) {
+            return classAlphabet.getOutsideClassIndex();
+        }
         return solution[k][classIndex];
     }
 
@@ -232,14 +236,14 @@ public class SequenceSolution extends Solution {
         return MinMaxPriorityQueue.maximumSize(bestK).create();
     }
 
-    public int scoreNewEdge(int toCellClassIndex, LatticeCell fromCell, double newEdgeScore) {
+    public int scoreNewEdge(int toCellClassIndex, LatticeCell fromCell, double newEdgeScore, double newNodeScore) {
         if (fromCell == null) {
             return 0;
         }
 
         int addResult = 0;
 
-        double newScoreTillHere = fromCell.getScore() + newEdgeScore;
+        double newScoreTillHere = fromCell.getScore() + newEdgeScore + newNodeScore;
 
         MinMaxPriorityQueue<LatticeCell> queue = temporaryCells[toCellClassIndex];
         if (queue == null) {
@@ -326,7 +330,9 @@ public class SequenceSolution extends Solution {
      * @return The string representation of the best solution.
      */
     public String toString() {
-        return Arrays.stream(solution[0]).mapToObj(classAlphabet::getClassName).collect(Collectors.joining(", "));
+        int[] bestSolution = solution[0];
+        return IntStream.range(0, bestSolution.length).mapToObj(solutionIndex -> solutionIndex + ":" + classAlphabet
+                .getClassName(bestSolution[solutionIndex])).collect(Collectors.joining(", "));
     }
 
     public ClassAlphabet getClassAlphabet() {

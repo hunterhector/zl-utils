@@ -1,12 +1,13 @@
 package edu.cmu.cs.lti.learning.debug;
 
-import edu.cmu.cs.lti.learning.model.HashAlphabet;
 import edu.cmu.cs.lti.learning.model.AveragedWeightVector;
-import gnu.trove.set.TIntSet;
-import gnu.trove.set.hash.TIntHashSet;
+import edu.cmu.cs.lti.learning.model.GraphWeightVector;
+import edu.cmu.cs.lti.learning.model.ClassAlphabet;
+import edu.cmu.cs.lti.learning.model.HashAlphabet;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.tuple.Triple;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,10 +15,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.function.Function;
-import java.util.function.ToIntFunction;
 
 /**
  * Created with IntelliJ IDEA.
@@ -30,65 +31,61 @@ public class HashedFeatureInspector {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private HashAlphabet featureAlphabet;
-    private AveragedWeightVector averagedWeightVector;
+    private ClassAlphabet classAlphabet;
+    private GraphWeightVector weightVector;
     private ReverseFeatureComparator comp;
 
-    public HashedFeatureInspector(HashAlphabet featureAlphabet,
-                                  AveragedWeightVector averagedWeightVector) {
+    public HashedFeatureInspector(HashAlphabet featureAlphabet, ClassAlphabet classAlphabet,
+                                  GraphWeightVector weightVector) {
         this.featureAlphabet = featureAlphabet;
-        this.averagedWeightVector = averagedWeightVector;
+        this.weightVector = weightVector;
+        this.classAlphabet = classAlphabet;
         comp = new ReverseFeatureComparator();
-    }
-
-    public void hashDistributionTester(ToIntFunction<String> customMapper) {
-        TIntSet slotsOccupied = new TIntHashSet();
-
-        int actualFeatures = 0;
-
-        for (int i = 0; i < averagedWeightVector.getFeatureSize(); i++) {
-            String[] featureNames = featureAlphabet.getFeatureNames(i);
-            if (featureNames != null) {
-                actualFeatures += featureNames.length;
-                for (String featureName : featureNames) {
-                    slotsOccupied.add(customMapper.applyAsInt(featureName));
-                }
-            }
-        }
-
-        logger.info(String.format("Testing results : Actual features : %d, actual occupied,: %d",
-                actualFeatures, slotsOccupied.size()));
     }
 
     public PriorityQueue<Triple<Integer, String, Double>> loadTopKAverageFeatures(int k) {
         PriorityQueue<Triple<Integer, String, Double>> topK = new PriorityQueue<>(k, comp);
-        loadFeatures(averagedWeightVector::getAverageWeightAt, topK, k);
+        for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext(); ) {
+            Pair<Integer, AveragedWeightVector> r = iter.next();
+            loadFeatures(r.getValue1()::getAverageWeightAt, r.getValue0(), topK, k);
+        }
         return topK;
     }
 
     public PriorityQueue<Triple<Integer, String, Double>> loadTopKFinalFeatures(int k) {
         PriorityQueue<Triple<Integer, String, Double>> topK = new PriorityQueue<>(k, comp);
-        loadFeatures(averagedWeightVector::getWeightAt, topK, k);
+        for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext(); ) {
+            Pair<Integer, AveragedWeightVector> r = iter.next();
+            loadFeatures(r.getValue1()::getWeightAt, r.getValue0(), topK, k);
+        }
         return topK;
     }
 
     public PriorityQueue<Triple<Integer, String, Double>> loadAllAverageFeatures() {
         PriorityQueue<Triple<Integer, String, Double>> all = new PriorityQueue<>();
-        loadFeatures(averagedWeightVector::getAverageWeightAt, all, -1);
+        for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext(); ) {
+            Pair<Integer, AveragedWeightVector> r = iter.next();
+            loadFeatures(r.getValue1()::getAverageWeightAt, r.getValue0(), all, -1);
+        }
         return all;
     }
 
     public PriorityQueue<Triple<Integer, String, Double>> loadAllFinalFeatures() {
         PriorityQueue<Triple<Integer, String, Double>> all = new PriorityQueue<>();
-        loadFeatures(averagedWeightVector::getWeightAt, all, -1);
+        for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext(); ) {
+            Pair<Integer, AveragedWeightVector> r = iter.next();
+            loadFeatures(r.getValue1()::getWeightAt, r.getValue0(), all, -1);
+        }
         return all;
     }
 
-    private void loadFeatures(Function<Integer, Double> getWeights,
+    private void loadFeatures(Function<Integer, Double> getWeights, int classIndex,
                               PriorityQueue<Triple<Integer, String, Double>> features, int k) {
-        for (int i = 0; i < averagedWeightVector.getFeatureSize(); i++) {
+        for (int i = 0; i < weightVector.getFeatureDimension(); i++) {
             double weight = getWeights.apply(i);
             if (featureAlphabet.getMappedFeatureCounters(i) != null) {
-                features.add(Triple.of(i, featureAlphabet.getMappedFeatureCounters(i), weight));
+                features.add(Triple.of(i, classAlphabet.getClassName(classIndex) + "_" + featureAlphabet
+                        .getMappedFeatureCounters(i), weight));
             }
             if (k > 0 && features.size() > k) {
                 features.poll();
@@ -130,42 +127,16 @@ public class HashedFeatureInspector {
 
         HashAlphabet featureAlphabet = SerializationUtils.deserialize(new FileInputStream(new File(modelDirectory,
                 "alphabet")));
-        AveragedWeightVector averagedWeightVector = SerializationUtils.deserialize(new FileInputStream(new File
+
+        ClassAlphabet classAlphabet = SerializationUtils.deserialize(new FileInputStream(new File(modelDirectory,
+                "classAlphabet")));
+
+        GraphWeightVector bikeyFv = SerializationUtils.deserialize(new FileInputStream(new File
                 (modelDirectory, "crfWeights")));
 
-        HashedFeatureInspector inspector = new HashedFeatureInspector(featureAlphabet, averagedWeightVector);
+        HashedFeatureInspector inspector = new HashedFeatureInspector(featureAlphabet, classAlphabet, bikeyFv);
 
         featureAlphabet.computeConflictRates();
-
-//        HashFunction hasher = Hashing.murmur3_32();
-//
-//        int k = (int) Math.pow(2, 23);
-//
-//        System.out.println("K - 1 = " + (k - 1) + " " + Integer.toBinaryString(k - 1));
-//
-//        System.out.println("Testing hash dist of modulo with k");
-//
-//        inspector.hashDistributionTester(operand -> {
-//            int v = hasher.hashString(operand, Charsets.UTF_8).asInt() % (k);
-//            if (v < 0) {
-//                v += k;
-//            }
-//            return v;
-//        });
-//
-//        System.out.println("Testing hash dist of modulo with k-1");
-//
-//        inspector.hashDistributionTester(operand -> {
-//            int v = hasher.hashString(operand, Charsets.UTF_8).asInt() % (k - 1);
-//            if (v < 0) {
-//                v += (k - 1);
-//            }
-//            return v;
-//        });
-//
-//        System.out.println("Testing hash dist of AND with k-1");
-//
-//        inspector.hashDistributionTester(operand -> hasher.hashString(operand, Charsets.UTF_8).asInt() & (k - 1));
 
         inspector.writeInspects(new File(outputDirectory, "top100Aver"), inspector.loadTopKAverageFeatures(100));
         inspector.writeInspects(new File(outputDirectory, "top100Final"), inspector.loadTopKFinalFeatures(100));

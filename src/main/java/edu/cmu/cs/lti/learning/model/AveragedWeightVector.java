@@ -1,8 +1,6 @@
 package edu.cmu.cs.lti.learning.model;
 
 import org.apache.commons.lang3.SerializationUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -19,9 +17,9 @@ import java.io.Serializable;
 public abstract class AveragedWeightVector implements Serializable {
     private static final long serialVersionUID = 7646416117744167293L;
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
     public abstract void updateWeightsBy(FeatureVector fv, double multiplier);
+
+    public abstract void updateAverageWeight();
 
     public void write(File outputFile) throws FileNotFoundException {
         consolidate();

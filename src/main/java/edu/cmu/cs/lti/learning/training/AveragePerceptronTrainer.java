@@ -18,8 +18,10 @@ import java.io.FileNotFoundException;
 public class AveragePerceptronTrainer {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private SequenceDecoder decoder;
-    private BiKeyWeightVector weightVector;
+    private GraphWeightVector weightVector;
     private double stepSize;
+
+    private ClassAlphabet classAlphabet;
 
     /**
      * A vanilla average perceptron, with a fixed step size.
@@ -27,14 +29,15 @@ public class AveragePerceptronTrainer {
      * @param decoder  The sequence decoder.
      * @param stepSize A fixed step size for each update.
      */
-    public AveragePerceptronTrainer(SequenceDecoder decoder, ClassAlphabet classAlphabet, double stepSize, int
-            featureDimension) {
+    public AveragePerceptronTrainer(SequenceDecoder decoder, ClassAlphabet classAlphabet, double stepSize,
+                                    FeatureAlphabet alphabet) {
         this.decoder = decoder;
-        weightVector = new BiKeyWeightVector(classAlphabet, featureDimension);
+        weightVector = new GraphWeightVector(classAlphabet, alphabet);
         this.stepSize = stepSize;
+        this.classAlphabet = classAlphabet;
     }
 
-    public double trainNext(SequenceSolution goldSolution, BiKeyFeatureVector goldFv, ChainFeatureExtractor extractor,
+    public double trainNext(SequenceSolution goldSolution, GraphFeatureVector goldFv, ChainFeatureExtractor extractor,
                             double lagrangian, CrfState key) {
         decoder.decode(extractor, weightVector, goldSolution.getSequenceLength(), lagrangian, key);
         SequenceSolution prediction = decoder.getDecodedPrediction();
@@ -44,27 +47,60 @@ public class AveragePerceptronTrainer {
 //        logger.debug(goldSolution.toString());
 //        logger.debug("Prediction:");
 //        logger.debug(prediction.toString());
+//        logger.debug("Loss is " + loss);
 //        DebugUtils.pause();
 
         if (loss != 0) {
-            BiKeyFeatureVector bestDecodingFeatures = decoder.getBestDecodingFeatures();
+            GraphFeatureVector bestDecodingFeatures = decoder.getBestDecodingFeatures();
             updateWeights(goldFv, bestDecodingFeatures);
         }
         return loss;
     }
 
-    private void updateWeights(BiKeyFeatureVector goldFv, BiKeyFeatureVector predictedFv) {
+    private void updateWeights(GraphFeatureVector goldFv, GraphFeatureVector predictedFv) {
+//        logger.info("######################");
+//        logger.info("Gold feature (node) is:");
+//        logger.info(goldFv.readableNodeVector());
+//
+//        logger.info("######################");
+//        logger.info("Prediction feature (node) is:");
+//        logger.info(predictedFv.readableNodeVector());
+
+
+//        logger.info("######################");
+//        logger.info("Gold feature (edge) is:");
+//        logger.info(goldFv.readableEdgeVector());
+//
+//        logger.info("######################");
+//        logger.info("Prediction feature (edge) is:");
+//        logger.info(predictedFv.readableEdgeVector());
+
+//        GraphFeatureVector diffVector = goldFv.diff(predictedFv);
+//        logger.debug("\n######################");
+//        logger.debug("Update feature (node) is:");
+//        logger.debug(diffVector.readableNodeVector());
+//        logger.debug("######################\n");
+
+//        logger.debug("\n######################");
+//        logger.debug("Update by gold vector:");
         weightVector.updateWeightBy(goldFv, stepSize);
+//        logger.debug("\n######################");
+//        logger.debug("Update by prediction vector:");
         weightVector.updateWeightBy(predictedFv, -stepSize);
 
-//        logger.info("Gold feature (uni) is:");
-//        logger.info(goldFv.readableUniVector());
-//
-//        logger.info("Prediction feature is:");
-//        logger.info(predictedFv.readableUniVector());
-
-//        logger.info("Difference is :");
-//        logger.info(diffVector.readableString());
+        weightVector.updateAverageWeights();
+//        for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext()
+// ; ) {
+//            Pair<Integer, AveragedWeightVector> r = iter.next();
+//            logger.info("Features for class " + classAlphabet.getClassName(r.getValue0()));
+//            for (int i = 0; i < r.getValue1().getFeatureSize(); i++) {
+//                double w = r.getValue1().getWeightAt(i);
+//                if (w > 0) {
+//                    logger.info(goldFv.getClassAlphabet().getClassName(r.getValue0()) + "_" +
+//                            goldFv.getFeatureAlphabet().getFeatureNameRepre(i) + "\t" + w);
+//                }
+//            }
+//        }
 
 //        DebugUtils.pause();
     }
