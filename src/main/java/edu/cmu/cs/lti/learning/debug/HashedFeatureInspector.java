@@ -1,8 +1,8 @@
 package edu.cmu.cs.lti.learning.debug;
 
 import edu.cmu.cs.lti.learning.model.AveragedWeightVector;
-import edu.cmu.cs.lti.learning.model.GraphWeightVector;
 import edu.cmu.cs.lti.learning.model.ClassAlphabet;
+import edu.cmu.cs.lti.learning.model.GraphWeightVector;
 import edu.cmu.cs.lti.learning.model.HashAlphabet;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SerializationUtils;
@@ -35,12 +35,26 @@ public class HashedFeatureInspector {
     private GraphWeightVector weightVector;
     private ReverseFeatureComparator comp;
 
-    public HashedFeatureInspector(HashAlphabet featureAlphabet, ClassAlphabet classAlphabet,
-                                  GraphWeightVector weightVector) {
-        this.featureAlphabet = featureAlphabet;
+    public HashedFeatureInspector(GraphWeightVector weightVector) {
         this.weightVector = weightVector;
-        this.classAlphabet = classAlphabet;
+        this.classAlphabet = weightVector.getClassAlphabet();
         comp = new ReverseFeatureComparator();
+
+        if (!(weightVector.getFeatureAlphabet() instanceof HashAlphabet)) {
+            logger.error("Hash inspector only inspect hashing alphabet.");
+            System.exit(0);
+        }
+
+        this.featureAlphabet = (HashAlphabet) weightVector.getFeatureAlphabet();
+
+        if (featureAlphabet.isStoreReadable()) {
+            logger.info("This alphabet stores readable model.");
+        } else {
+            logger.error("No readable model stored!");
+            System.exit(0);
+        }
+
+        featureAlphabet.computeConflictRates();
     }
 
     public PriorityQueue<Triple<Integer, String, Double>> loadTopKAverageFeatures(int k) {
@@ -125,18 +139,10 @@ public class HashedFeatureInspector {
         String outputDirectory = args[1];
 
 
-        HashAlphabet featureAlphabet = SerializationUtils.deserialize(new FileInputStream(new File(modelDirectory,
-                "alphabet")));
+        GraphWeightVector crfModel = SerializationUtils.deserialize(new FileInputStream(new File
+                (modelDirectory, "crfModel")));
 
-        ClassAlphabet classAlphabet = SerializationUtils.deserialize(new FileInputStream(new File(modelDirectory,
-                "classAlphabet")));
-
-        GraphWeightVector bikeyFv = SerializationUtils.deserialize(new FileInputStream(new File
-                (modelDirectory, "crfWeights")));
-
-        HashedFeatureInspector inspector = new HashedFeatureInspector(featureAlphabet, classAlphabet, bikeyFv);
-
-        featureAlphabet.computeConflictRates();
+        HashedFeatureInspector inspector = new HashedFeatureInspector(crfModel);
 
         inspector.writeInspects(new File(outputDirectory, "top100Aver"), inspector.loadTopKAverageFeatures(100));
         inspector.writeInspects(new File(outputDirectory, "top100Final"), inspector.loadTopKFinalFeatures(100));

@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA.
@@ -35,6 +36,8 @@ public class WekaModel implements Serializable {
 
     private double[] emptyVector;
 
+    private String defaulClassifier;
+
     public WekaModel(File modelDir) throws Exception {
         load(modelDir);
     }
@@ -49,7 +52,6 @@ public class WekaModel implements Serializable {
         this.classAlphabet = classAlphabet;
         this.classifiers = classifiers;
         this.featureConfiguration = featureConfiguration;
-        emptyDataSet = new Instances("dummy", featureConfiguration, 0);
     }
 
     public void load(File modelDir) throws Exception {
@@ -58,6 +60,12 @@ public class WekaModel implements Serializable {
         this.classAlphabet = model.classAlphabet;
         this.classifiers = model.classifiers;
         this.featureConfiguration = model.featureConfiguration;
+        emptyDataSet = new Instances("dummy", featureConfiguration, 0);
+        emptyDataSet.setClass(featureConfiguration.get(featureConfiguration.size() - 1));
+        emptyVector = new double[featureConfiguration.size()];
+
+        // Arbitrarily get one of the classifiers as default.
+        defaulClassifier = new ArrayList<>(classifiers.keySet()).get(0);
     }
 
     public void write(File modelDir) throws Exception {
@@ -70,6 +78,18 @@ public class WekaModel implements Serializable {
 
     public Pair<Double, String> classify(String classifierName, Instance instance) throws Exception {
         Classifier cls = classifiers.get(classifierName);
+        return classify(cls, instance);
+    }
+
+    public Pair<Double, String> classify(TObjectDoubleMap<String> features) throws Exception {
+        return classify(createInstance(features));
+    }
+
+    public Pair<Double, String> classify(Instance instance) throws Exception {
+        return classify(defaulClassifier, instance);
+    }
+
+    public Pair<Double, String> classify(Classifier cls, Instance instance) throws Exception {
         double[] dist = cls.distributionForInstance(instance);
 
         double best = Double.NEGATIVE_INFINITY;
@@ -83,6 +103,7 @@ public class WekaModel implements Serializable {
         return Pair.with(best, classAlphabet.getClassName(bestIndex));
     }
 
+
     private Instance createInstance(TObjectDoubleMap<String> features) {
         Instance instance = new SparseInstance(1, emptyVector);
         instance.setDataset(emptyDataSet);
@@ -90,9 +111,15 @@ public class WekaModel implements Serializable {
         for (TObjectDoubleIterator<String> fIter = features.iterator(); fIter.hasNext(); ) {
             fIter.advance();
             int featureId = alphabet.getFeatureId(fIter.key());
-            double featureVal = fIter.value();
-            instance.setValue(featureConfiguration.get(featureId), featureVal);
+            if (featureId >= 0) {
+                double featureVal = fIter.value();
+                instance.setValue(featureConfiguration.get(featureId), featureVal);
+            }
         }
         return instance;
+    }
+
+    public Set<String> getClassifierNames() {
+        return classifiers.keySet();
     }
 }

@@ -78,14 +78,9 @@ public class HashAlphabet extends FeatureAlphabet {
     }
 
     private int hash(String feature) {
-        // It is murmur32, which can produce a maximum 4 byte element.
-        int hashVal = hasher.hashString(feature, Charsets.UTF_8).asInt() & hashMask;
-
-//        logger.info("Hashing " + feature);
-//        logger.info("Result " + hashVal);
+        int hashVal = plainHash(feature);
 
         if (storeReadable) {
-//            hashValueStore.put(feature, hashVal);
             TObjectIntMap<String> counter = featureCounters[hashVal];
             if (counter == null) {
                 counter = new TObjectIntHashMap<>();
@@ -94,6 +89,11 @@ public class HashAlphabet extends FeatureAlphabet {
             counter.adjustOrPutValue("[" + feature + "]", 1, 1);
         }
         return hashVal;
+    }
+
+    private int plainHash(String feature) {
+        // It is murmur32, which can produce a maximum 4 byte element.
+        return hasher.hashString(feature, Charsets.UTF_8).asInt() & hashMask;
     }
 
     public String getMappedFeatureCounters(int featureIndex) {

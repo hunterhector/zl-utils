@@ -20,10 +20,16 @@ public class BiMapAlphabet extends FeatureAlphabet {
 
     private AtomicInteger featureIdCounter;
 
+    private boolean fixMap = false;
+
     public BiMapAlphabet() {
         super();
         featureIdCounter = new AtomicInteger();
         featureBiMap = HashBiMap.create();
+    }
+
+    public void fixMap() {
+        fixMap = true;
     }
 
     @Override
@@ -31,6 +37,8 @@ public class BiMapAlphabet extends FeatureAlphabet {
         int featureId;
         if (featureBiMap.containsKey(featureName)) {
             featureId = featureBiMap.get(featureName);
+        } else if (fixMap) {
+            return -1;
         } else {
             featureId = featureIdCounter.getAndIncrement();
             featureBiMap.put(featureName, featureId);

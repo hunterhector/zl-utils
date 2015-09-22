@@ -4,8 +4,6 @@ import gnu.trove.iterator.TIntDoubleIterator;
 import gnu.trove.map.TIntDoubleMap;
 import gnu.trove.map.hash.TIntDoubleHashMap;
 import org.apache.commons.lang3.SerializationUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,19 +19,19 @@ import java.io.FileOutputStream;
 public class HashBasedAveragedWeightVector extends AveragedWeightVector {
     private static final long serialVersionUID = 7646416117744167293L;
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
-    private int updateCounts;
+    // Individual update count of this vector.
+    private int averageUpdateCount;
 
     private TIntDoubleMap weights;
     private TIntDoubleMap averagedWeights;
 
     private boolean consolidated;
 
-    public HashBasedAveragedWeightVector() {
+    public HashBasedAveragedWeightVector(int initialAverageUpdateCount) {
         weights = new TIntDoubleHashMap();
         averagedWeights = new TIntDoubleHashMap();
-        updateCounts = 0;
+        consolidated = false;
+        averageUpdateCount = initialAverageUpdateCount;
     }
 
     @Override
@@ -42,10 +40,19 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
             iter.next();
             int index = iter.featureIndex();
             double updateAmount = iter.featureValue() * multiplier;
-            double updateResult = weights.adjustOrPutValue(index, updateAmount, updateAmount);
-            averagedWeights.adjustOrPutValue(index, updateResult, updateResult);
+            weights.adjustOrPutValue(index, updateAmount, updateAmount);
         }
-        updateCounts++;
+    }
+
+    @Override
+    public void updateAverageWeight() {
+        for (TIntDoubleIterator iter = weights.iterator(); iter.hasNext(); ) {
+            iter.advance();
+            int index = iter.key();
+            double value = iter.value();
+            averagedWeights.adjustOrPutValue(index, value, value);
+        }
+        averageUpdateCount++;
     }
 
     @Override
@@ -60,6 +67,7 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
         double sum = 0;
         for (FeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
             iter.next();
+
             sum += weights.get(iter.featureIndex()) * iter.featureValue();
         }
         return sum;
@@ -78,17 +86,17 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
     @Override
     void consolidate() {
         if (!consolidated) {
-            logger.info("Consolidating weights.");
+            if (averageUpdateCount != 0) {
+                for (TIntDoubleIterator iter = averagedWeights.iterator(); iter.hasNext(); ) {
+                    iter.advance();
+                    if (iter.value() == 0) {
+                        iter.remove();
+                    } else {
+                        iter.setValue(iter.value() / averageUpdateCount);
 
-            for (TIntDoubleIterator iter = averagedWeights.iterator(); iter.hasNext(); ) {
-                iter.advance();
-                if (iter.value() == 0) {
-                    iter.remove();
-                } else {
-                    iter.setValue(iter.value() / updateCounts);
+                    }
                 }
             }
-
             consolidated = true;
         }
     }
@@ -96,10 +104,11 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
     @Override
     void deconsolidate() {
         if (consolidated) {
-            logger.info("Deconsolidating weights.");
-            for (TIntDoubleIterator iter = averagedWeights.iterator(); iter.hasNext(); ) {
-                iter.advance();
-                iter.setValue(iter.value() * updateCounts);
+            if (averageUpdateCount != 0) {
+                for (TIntDoubleIterator iter = averagedWeights.iterator(); iter.hasNext(); ) {
+                    iter.advance();
+                    iter.setValue(iter.value() * averageUpdateCount);
+                }
             }
             consolidated = false;
         }

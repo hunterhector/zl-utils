@@ -40,9 +40,7 @@ public abstract class WekaBasedTrainer {
 
     private ArrayList<Attribute> featureConfiguration;
 
-    private ArffSaver saver = new ArffSaver();
-
-    private BiMapAlphabet alphabet = new BiMapAlphabet();
+    public static final String DUMMY_CLASS_NAME = "dummy_class";
 
     protected abstract Map<String, Classifier> getClassifiers() throws Exception;
 
@@ -60,8 +58,6 @@ public abstract class WekaBasedTrainer {
 
     private void declareClass(ClassAlphabet classAlphabet, List<Attribute> featureVector) {
         List<String> fixedClasses = new ArrayList<>();
-        //a bug related to the sparse vector
-        fixedClasses.add("dummy_class");
         for (int i = 0; i < classAlphabet.size(); i++) {
             fixedClasses.add(classAlphabet.getClassName(i));
         }
@@ -117,6 +113,7 @@ public abstract class WekaBasedTrainer {
 
 
     private void saveDataSet(Instances dataset, String path) throws IOException {
+        ArffSaver saver = new ArffSaver();
         saver.setInstances(dataset);
         saver.setFile(new File(path));
         saver.writeBatch();
@@ -126,6 +123,10 @@ public abstract class WekaBasedTrainer {
         List<Pair<TIntDoubleMap, String>> rawInstances = new ArrayList<>();
         TObjectIntMap<String> featureNameMap = new TObjectIntHashMap<>();
         ClassAlphabet classAlphabet = new ClassAlphabet();
+        //a bug related to the sparse vector of WEKA
+        classAlphabet.addClass(DUMMY_CLASS_NAME);
+
+        BiMapAlphabet alphabet = new BiMapAlphabet();
 
         logger.info("Running feature generation.");
         getFeatures(rawInstances, alphabet, classAlphabet);
@@ -134,12 +135,15 @@ public abstract class WekaBasedTrainer {
             featureNameMap.put(featureNameEntry.getKey(), featureNameEntry.getValue());
         }
 
+        alphabet.fixMap();
+
         configFeatures(featureNameMap, classAlphabet);
         Instances trainingDataset = prepareDataSet(rawInstances, new File(modelOutputDir, DATASET_BASENAME).getPath());
 
         Map<String, Classifier> classifiers = getClassifiers();
 
-        for (Map.Entry<String, Classifier> nameAndCls : getClassifiers().entrySet()) {
+        for (Map.Entry<String, Classifier> nameAndCls : classifiers.entrySet()) {
+            logger.info("Building classifier " + nameAndCls.getKey());
             Classifier cls = nameAndCls.getValue();
             cls.buildClassifier(trainingDataset);
         }
