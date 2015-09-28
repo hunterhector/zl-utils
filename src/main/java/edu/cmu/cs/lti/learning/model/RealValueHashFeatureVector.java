@@ -34,6 +34,10 @@ public class RealValueHashFeatureVector extends FeatureVector {
         return fv.get(featureIndex);
     }
 
+    public FeatureVector newVector() {
+        return new RealValueHashFeatureVector(alphabet);
+    }
+
     @Override
     public FeatureIterator featureIterator() {
         TIntDoubleIterator iter = fv.iterator();

@@ -27,6 +27,10 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
 
     private boolean consolidated;
 
+    public HashBasedAveragedWeightVector() {
+        this(0);
+    }
+
     public HashBasedAveragedWeightVector(int initialAverageUpdateCount) {
         weights = new TIntDoubleHashMap();
         averagedWeights = new TIntDoubleHashMap();

@@ -67,6 +67,10 @@ public class GraphFeatureVector implements Serializable {
         thisFv.extend(fv);
     }
 
+    public void extend(FeatureVector fv, String className) {
+        extend(fv, classAlphabet.getClassIndex(className));
+    }
+
     public void extend(FeatureVector fv, int nodeKey) {
         FeatureVector thisFv;
         if (nodeFv.containsKey(nodeKey)) {
@@ -106,7 +110,7 @@ public class GraphFeatureVector implements Serializable {
 
 
     // Currently only implemented differences on node key.
-    public GraphFeatureVector diff(GraphFeatureVector minusVector) {
+    public GraphFeatureVector nodeOnlyDiff(GraphFeatureVector minusVector) {
         GraphFeatureVector resultVector = new GraphFeatureVector(classAlphabet, featureAlphabet, isBinary);
 
         TIntSet classesUsed = new TIntHashSet();

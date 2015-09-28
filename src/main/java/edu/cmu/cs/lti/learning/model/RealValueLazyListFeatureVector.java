@@ -27,6 +27,11 @@ public class RealValueLazyListFeatureVector extends FeatureVector {
     }
 
     @Override
+    public FeatureVector newVector() {
+        return new RealValueLazyListFeatureVector(alphabet);
+    }
+
+    @Override
     protected boolean addFeatureInternal(int featureIndex, double featureValue) {
         return fv.add(Pair.with(featureIndex, featureValue));
     }

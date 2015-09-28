@@ -5,6 +5,7 @@ package edu.cmu.cs.lti.utils;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.util.Arrays;
 
 /**
  * @author zhengzhongliu
@@ -29,5 +30,18 @@ public class FileUtils {
                 return name.endsWith(suffix);
             }
         });
+    }
+
+    public static String joinPaths(String... directories) {
+        return joinPathsAsFile(directories).getPath();
+    }
+
+    public static File joinPathsAsFile(String... directories) {
+        if (directories.length == 1) {
+            return new File(directories[0]);
+        } else {
+            String[] rest = Arrays.copyOfRange(directories, 1, directories.length);
+            return new File(directories[0], joinPathsAsFile(rest).getPath());
+        }
     }
 }

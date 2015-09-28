@@ -12,6 +12,8 @@ import java.io.FileNotFoundException;
  * Created with IntelliJ IDEA.
  * Date: 8/20/15
  * Time: 10:44 PM
+ * <p>
+ * Train an average perceptron model given a sequence decoder.
  *
  * @author Zhengzhong Liu
  */
@@ -21,7 +23,6 @@ public class AveragePerceptronTrainer {
     private GraphWeightVector weightVector;
     private double stepSize;
 
-    private ClassAlphabet classAlphabet;
 
     /**
      * A vanilla average perceptron, with a fixed step size.
@@ -34,7 +35,6 @@ public class AveragePerceptronTrainer {
         this.decoder = decoder;
         weightVector = new GraphWeightVector(classAlphabet, alphabet);
         this.stepSize = stepSize;
-        this.classAlphabet = classAlphabet;
     }
 
     public double trainNext(SequenceSolution goldSolution, GraphFeatureVector goldFv, ChainFeatureExtractor extractor,
@@ -42,13 +42,6 @@ public class AveragePerceptronTrainer {
         decoder.decode(extractor, weightVector, goldSolution.getSequenceLength(), lagrangian, key);
         SequenceSolution prediction = decoder.getDecodedPrediction();
         double loss = goldSolution.loss(prediction);
-
-//        logger.debug("Gold:");
-//        logger.debug(goldSolution.toString());
-//        logger.debug("Prediction:");
-//        logger.debug(prediction.toString());
-//        logger.debug("Loss is " + loss);
-//        DebugUtils.pause();
 
         if (loss != 0) {
             GraphFeatureVector bestDecodingFeatures = decoder.getBestDecodingFeatures();
@@ -58,51 +51,10 @@ public class AveragePerceptronTrainer {
     }
 
     private void updateWeights(GraphFeatureVector goldFv, GraphFeatureVector predictedFv) {
-//        logger.info("######################");
-//        logger.info("Gold feature (node) is:");
-//        logger.info(goldFv.readableNodeVector());
-//
-//        logger.info("######################");
-//        logger.info("Prediction feature (node) is:");
-//        logger.info(predictedFv.readableNodeVector());
-
-
-//        logger.info("######################");
-//        logger.info("Gold feature (edge) is:");
-//        logger.info(goldFv.readableEdgeVector());
-//
-//        logger.info("######################");
-//        logger.info("Prediction feature (edge) is:");
-//        logger.info(predictedFv.readableEdgeVector());
-
-//        GraphFeatureVector diffVector = goldFv.diff(predictedFv);
-//        logger.debug("\n######################");
-//        logger.debug("Update feature (node) is:");
-//        logger.debug(diffVector.readableNodeVector());
-//        logger.debug("######################\n");
-
-//        logger.debug("\n######################");
-//        logger.debug("Update by gold vector:");
-        weightVector.updateWeightBy(goldFv, stepSize);
-//        logger.debug("\n######################");
-//        logger.debug("Update by prediction vector:");
-        weightVector.updateWeightBy(predictedFv, -stepSize);
+        weightVector.updateWeightsBy(goldFv, stepSize);
+        weightVector.updateWeightsBy(predictedFv, -stepSize);
 
         weightVector.updateAverageWeights();
-//        for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext()
-// ; ) {
-//            Pair<Integer, AveragedWeightVector> r = iter.next();
-//            logger.info("Features for class " + classAlphabet.getClassName(r.getValue0()));
-//            for (int i = 0; i < r.getValue1().getFeatureSize(); i++) {
-//                double w = r.getValue1().getWeightAt(i);
-//                if (w > 0) {
-//                    logger.info(goldFv.getClassAlphabet().getClassName(r.getValue0()) + "_" +
-//                            goldFv.getFeatureAlphabet().getFeatureNameRepre(i) + "\t" + w);
-//                }
-//            }
-//        }
-
-//        DebugUtils.pause();
     }
 
     public void write(File outputFile) throws FileNotFoundException {

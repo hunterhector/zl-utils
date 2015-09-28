@@ -33,6 +33,10 @@ public class BinaryHashFeatureVector extends FeatureVector {
         return fv.get(featureIndex);
     }
 
+    public FeatureVector newVector() {
+        return new BinaryHashFeatureVector(alphabet);
+    }
+
     @Override
     public FeatureIterator featureIterator() {
         TIntIntIterator iter = fv.iterator();

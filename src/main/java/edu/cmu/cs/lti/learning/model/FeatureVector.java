@@ -19,6 +19,8 @@ public abstract class FeatureVector implements Serializable {
 
     protected int featureSize;
 
+    private FeatureVector emptyVector = newVector();
+
     public FeatureVector(FeatureAlphabet alphabet) {
         this.alphabet = alphabet;
     }
@@ -36,6 +38,13 @@ public abstract class FeatureVector implements Serializable {
     public int addFeature(String featureName, double featureValue) {
         return addFeature(alphabet.getFeatureId(featureName), featureValue);
     }
+
+    /**
+     * Create a feature vector sharing this one's setting (such as Binary/Real, Alphabet)
+     *
+     * @return The Feature Vector sharing the settings.
+     */
+    public abstract FeatureVector newVector();
 
     /**
      * Add a feature to the feature vector by directly accessing the feature index. We normally do not want to access
@@ -88,6 +97,17 @@ public abstract class FeatureVector implements Serializable {
         }
     }
 
+    /**
+     * Get the negation of this feature by diff it from an empty feature vector.
+     *
+     * @return Negated vector
+     */
+    public FeatureVector negation() {
+        FeatureVector negatedVector = newVector();
+        emptyVector.diff(this, negatedVector);
+        return negatedVector;
+    }
+
     public double getFeatureValue(String featureName) {
         return getFeatureValue(alphabet.getFeatureId(featureName));
     }
@@ -131,12 +151,20 @@ public abstract class FeatureVector implements Serializable {
         return features.toString();
     }
 
-
     public int getFeatureSize() {
         return featureSize;
     }
 
     public FeatureAlphabet getAlphabet() {
         return alphabet;
+    }
+
+    public double dotProd(FeatureVector v) {
+        double dotProd = 0;
+        for (FeatureIterator iter = this.featureIterator(); iter.hasNext(); ) {
+            iter.next();
+            dotProd += v.getFeatureValue(iter.featureIndex()) * iter.featureValue();
+        }
+        return dotProd;
     }
 }

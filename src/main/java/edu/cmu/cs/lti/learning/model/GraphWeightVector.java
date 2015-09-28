@@ -128,9 +128,6 @@ public class GraphWeightVector implements Serializable {
             addWeightVector(currentKey);
         }
 
-//        logger.debug("Updating features for " + classAlphabet.getClassName(currentKey) + " by " + multiplier);
-//        logger.debug(fv.readableString());
-
         nodeWeights[currentKey].updateWeightsBy(fv, multiplier);
     }
 
@@ -146,7 +143,7 @@ public class GraphWeightVector implements Serializable {
         edgeWeights[currentKey][previousKey].updateWeightsBy(fv, multiplier);
     }
 
-    public void updateWeightBy(GraphFeatureVector updateVector, double multiplier) {
+    public void updateWeightsBy(GraphFeatureVector updateVector, double multiplier) {
         for (TIntObjectIterator<FeatureVector> iter = updateVector.nodeFvIter(); iter.hasNext(); ) {
             iter.advance();
             updateWeightsBy(iter.value(), iter.key(), multiplier);
@@ -158,8 +155,12 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
-    public double dotProd(FeatureVector fv, int currentKey) {
-        AveragedWeightVector weights = nodeWeights[currentKey];
+    public double dotProd(FeatureVector fv, String classLabel){
+        return dotProd(fv, classAlphabet.getClassIndex(classLabel));
+    }
+
+    public double dotProd(FeatureVector fv, int nodeKey) {
+        AveragedWeightVector weights = nodeWeights[nodeKey];
         if (weights != null) {
             return weights.dotProd(fv);
         } else {
@@ -167,31 +168,46 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
-    public double dotProdVerbose(FeatureVector fv, int currentKey) {
-        ArrayBasedAveragedWeightVector weights = (ArrayBasedAveragedWeightVector) nodeWeights[currentKey];
+    public double dotProd(GraphFeatureVector fv) {
+        double prod = 0;
+        for (TIntObjectIterator<FeatureVector> iter = fv.nodeFvIter(); iter.hasNext(); ) {
+            iter.advance();
+            prod += dotProd(iter.value(), iter.key());
+        }
+
+        for (Iterator<Table.Cell<Integer, Integer, FeatureVector>> iter = fv.edgeFvIter(); iter.hasNext(); ) {
+            Table.Cell<Integer, Integer, FeatureVector> cell = iter.next();
+            prod += dotProd(cell.getValue(), cell.getRowKey(), cell.getColumnKey());
+        }
+
+        return prod;
+    }
+
+    public double dotProdVerbose(FeatureVector fv, int nodeKey) {
+        ArrayBasedAveragedWeightVector weights = (ArrayBasedAveragedWeightVector) nodeWeights[nodeKey];
         if (weights != null) {
-//            System.out.println("Get " + currentKey + " success");
-//            System.out.println(nodeWeights[currentKey].dotProd(fv));
+//            System.out.println("Get " + nodeKey + " success");
+//            System.out.println(nodeWeights[nodeKey].dotProd(fv));
             return weights.dotProd(fv, featureAlphabet);
         } else {
             return 0;
         }
     }
 
-    public double dotProd(FeatureVector fv, int currentKey, int previousKey) {
-        AveragedWeightVector weights = edgeWeights[currentKey][previousKey];
+    public double dotProd(FeatureVector fv, int fromNodeKey, int toNodeKey) {
+        AveragedWeightVector weights = edgeWeights[fromNodeKey][toNodeKey];
         if (weights != null) {
-//            System.out.println("Get " + currentKey + " " + previousKey + " success");
+//            System.out.println("Get " + fromNodeKey + " " + toNodeKey + " success");
 //            System.out.println("Dot prod against " + fv.readableString());
-//            System.out.println(edgeWeights[currentKey][previousKey].dotProd(fv));
+//            System.out.println(edgeWeights[fromNodeKey][toNodeKey].dotProd(fv));
             return weights.dotProd(fv);
         } else {
             return 0;
         }
     }
 
-    public double dotProdAver(FeatureVector fv, int currentKey) {
-        AveragedWeightVector weights = nodeWeights[currentKey];
+    public double dotProdAver(FeatureVector fv, int nodeKey) {
+        AveragedWeightVector weights = nodeWeights[nodeKey];
         if (weights != null) {
             return weights.dotProdAver(fv);
         } else {
@@ -199,8 +215,8 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
-    public double dotProdAver(FeatureVector fv, int currentKey, int previousKey) {
-        AveragedWeightVector weights = edgeWeights[currentKey][previousKey];
+    public double dotProdAver(FeatureVector fv, int fromNodeKey, int toNodeKey) {
+        AveragedWeightVector weights = edgeWeights[fromNodeKey][toNodeKey];
         if (weights != null) {
             return weights.dotProdAver(fv);
         } else {
@@ -240,7 +256,6 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
-    // TODO: we can also save all the alphabet here, so we do not need to serialize another object.
     public FeatureAlphabet getFeatureAlphabet() {
         return featureAlphabet;
     }
