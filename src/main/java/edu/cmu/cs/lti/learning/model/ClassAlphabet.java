@@ -72,6 +72,8 @@ public class ClassAlphabet implements Serializable {
     }
 
     /**
+     * // TODO this should be placed in a more specific alphabet class.
+     * <p>
      * Split class names into subclass names. The full class name might be a concatenation of multiple classes and
      * might contain hierarchy. The concatenation is represented by ";" and the hierarchy is represented as "_".
      * This method will split a class name of "A_B;C_D" in the following:

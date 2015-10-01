@@ -1,7 +1,11 @@
 package edu.cmu.cs.lti.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
@@ -14,6 +18,8 @@ import java.util.Set;
  * Time: 1:17 AM
  */
 public class Configuration {
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
+
     private Properties properties;
 
     private File configFile;
@@ -28,10 +34,11 @@ public class Configuration {
 
     public Configuration(File configurationFile) throws IOException {
         if (!configurationFile.exists()) {
-            throw new IOException("Cannot read config file at : " + configurationFile.getCanonicalPath());
+            throw new FileNotFoundException("Cannot read config file at : " + configurationFile.getCanonicalPath());
         }
         properties = new Properties();
         properties.load(new FileInputStream(configurationFile));
+
         this.configFile = configurationFile;
     }
 

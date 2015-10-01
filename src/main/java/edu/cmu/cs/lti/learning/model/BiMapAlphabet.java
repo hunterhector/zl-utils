@@ -53,7 +53,7 @@ public class BiMapAlphabet extends FeatureAlphabet {
 
     @Override
     public String getFeatureNameRepre(int featureIndex) {
-        return "<bimap>" + featureBiMap.inverse().get(featureIndex);
+        return featureBiMap.inverse().get(featureIndex);
     }
 
     @Override

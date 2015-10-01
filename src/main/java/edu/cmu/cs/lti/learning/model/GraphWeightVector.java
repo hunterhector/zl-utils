@@ -76,8 +76,7 @@ public class GraphWeightVector implements Serializable {
     }
 
     private void addWeightVector(int classIndex) {
-        nodeWeights[classIndex] = new ArrayBasedAveragedWeightVector(featureAlphabet.getAlphabetSize(),
-                averageUpdateCount);
+        nodeWeights[classIndex] = new HashBasedAveragedWeightVector(averageUpdateCount);
         activedNodeKeys.add(classIndex);
     }
 
@@ -155,7 +154,7 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
-    public double dotProd(FeatureVector fv, String classLabel){
+    public double dotProd(FeatureVector fv, String classLabel) {
         return dotProd(fv, classAlphabet.getClassIndex(classLabel));
     }
 
@@ -183,23 +182,9 @@ public class GraphWeightVector implements Serializable {
         return prod;
     }
 
-    public double dotProdVerbose(FeatureVector fv, int nodeKey) {
-        ArrayBasedAveragedWeightVector weights = (ArrayBasedAveragedWeightVector) nodeWeights[nodeKey];
-        if (weights != null) {
-//            System.out.println("Get " + nodeKey + " success");
-//            System.out.println(nodeWeights[nodeKey].dotProd(fv));
-            return weights.dotProd(fv, featureAlphabet);
-        } else {
-            return 0;
-        }
-    }
-
     public double dotProd(FeatureVector fv, int fromNodeKey, int toNodeKey) {
         AveragedWeightVector weights = edgeWeights[fromNodeKey][toNodeKey];
         if (weights != null) {
-//            System.out.println("Get " + fromNodeKey + " " + toNodeKey + " success");
-//            System.out.println("Dot prod against " + fv.readableString());
-//            System.out.println(edgeWeights[fromNodeKey][toNodeKey].dotProd(fv));
             return weights.dotProd(fv);
         } else {
             return 0;

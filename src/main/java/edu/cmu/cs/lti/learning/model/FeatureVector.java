@@ -19,7 +19,6 @@ public abstract class FeatureVector implements Serializable {
 
     protected int featureSize;
 
-    private FeatureVector emptyVector = newVector();
 
     public FeatureVector(FeatureAlphabet alphabet) {
         this.alphabet = alphabet;
@@ -104,6 +103,7 @@ public abstract class FeatureVector implements Serializable {
      */
     public FeatureVector negation() {
         FeatureVector negatedVector = newVector();
+        FeatureVector emptyVector = newVector();
         emptyVector.diff(this, negatedVector);
         return negatedVector;
     }
@@ -139,7 +139,9 @@ public abstract class FeatureVector implements Serializable {
         StringBuilder features = new StringBuilder();
         FeatureIterator iter = featureIterator();
 
-        String sep = "";
+        features.append("[Feature Vector] ").append(this.getClass().getSimpleName());
+
+        String sep = separator;
         while (iter.hasNext()) {
             iter.next();
             features.append(sep);

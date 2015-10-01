@@ -153,7 +153,7 @@ public class HashAlphabet extends FeatureAlphabet {
 
     @Override
     public String getFeatureNameRepre(int featureIndex) {
-        return "<hashed>_" + getMappedFeatureCounters(featureIndex);
+        return getMappedFeatureCounters(featureIndex);
     }
 
     public int getAlphabetSize() {

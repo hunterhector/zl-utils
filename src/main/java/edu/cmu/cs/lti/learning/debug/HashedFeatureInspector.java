@@ -135,12 +135,10 @@ public class HashedFeatureInspector {
     }
 
     public static void main(String[] args) throws IOException {
-        String modelDirectory = args[0];
+        String modelFile = args[0];
         String outputDirectory = args[1];
 
-
-        GraphWeightVector crfModel = SerializationUtils.deserialize(new FileInputStream(new File
-                (modelDirectory, "crfModel")));
+        GraphWeightVector crfModel = SerializationUtils.deserialize(new FileInputStream(new File(modelFile)));
 
         HashedFeatureInspector inspector = new HashedFeatureInspector(crfModel);
 
