@@ -31,22 +31,22 @@ public class HashAlphabet extends FeatureAlphabet {
 
     private final int hashMask;
 
-    private static HashAlphabet instance = null;
-
-    /**
-     * Get a default instance of the alphabet.
-     *
-     * @param alphabetBits  The power of 2 of this is the alphabet size, i.e. number of bits for feature.
-     * @param storeReadable If this is true, it will create a alphabet that also stores all feature names to integer id
-     *                      count. This will make the training about 25% slower.
-     * @return
-     */
-    public static HashAlphabet getInstance(int alphabetBits, boolean storeReadable) {
-        if (instance == null) {
-            instance = new HashAlphabet(alphabetBits, storeReadable);
-        }
-        return instance;
-    }
+//    private static HashAlphabet instance = null;
+//
+//    /**
+//     * Get a default instance of the alphabet.
+//     *
+//     * @param alphabetBits  The power of 2 of this is the alphabet size, i.e. number of bits for feature.
+//     * @param storeReadable If this is true, it will create a alphabet that also stores all feature names to integer id
+//     *                      count. This will make the training about 25% slower.
+//     * @return
+//     */
+//    public static HashAlphabet getInstance(int alphabetBits, boolean storeReadable) {
+//        if (instance == null) {
+//            instance = new HashAlphabet(alphabetBits, storeReadable);
+//        }
+//        return instance;
+//    }
 
     /**
      * Create a alphabet that also stores all feature names to integer id count. This will make the training about
@@ -59,7 +59,7 @@ public class HashAlphabet extends FeatureAlphabet {
     public HashAlphabet(int alphabetBits, boolean storeReadable) {
         super();
         if (alphabetBits >= 31) {
-            throw new IllegalArgumentException("Alphabet size exceed the power of current Murmur");
+            throw new IllegalArgumentException("Alphabet size exceed the power of current Murmur.");
         }
 
         int alphabetSize = (int) Math.pow(2, alphabetBits);
