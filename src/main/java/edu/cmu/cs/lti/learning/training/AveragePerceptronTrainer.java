@@ -33,7 +33,7 @@ public class AveragePerceptronTrainer {
     public AveragePerceptronTrainer(SequenceDecoder decoder, ClassAlphabet classAlphabet, double stepSize,
                                     FeatureAlphabet alphabet) {
         this.decoder = decoder;
-        weightVector = new GraphWeightVector(classAlphabet, alphabet, true /**Use hash weight vector**/);
+        weightVector = new GraphWeightVector(classAlphabet, alphabet);
         this.stepSize = stepSize;
     }
 

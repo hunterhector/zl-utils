@@ -201,18 +201,18 @@ public class SequenceSolution extends Solution {
      * Return the class of the best solution contained.
      *
      * @param classIndex The class index
-     * @return The best solution at class index.
+     * @return
      */
     public int getClassAt(int classIndex) {
         return getClassAt(0, classIndex);
     }
 
     /**
-     * Return the k-th solution class index.
+     * Return the class of the k-th best solution.
      *
-     * @param k          The k-th best.
-     * @param classIndex The
-     * @return The k-th solution at class index.
+     * @param k
+     * @param classIndex
+     * @return
      */
     public int getClassAt(int k, int classIndex) {
         if (classIndex >= solution[k].length) {
@@ -236,18 +236,6 @@ public class SequenceSolution extends Solution {
         return MinMaxPriorityQueue.maximumSize(bestK).create();
     }
 
-    /**
-     * Score the edge till the toCellClassIndex. The score until this point is calculated by summing the following:
-     * score of previous node, score of the edge, score of the current node. The return value indicates whether this
-     * new score comparing to other scores stored: 1 if this score is the current best; -1 if this score is rejected
-     * by the k-best list; 0 otherwise.
-     *
-     * @param toCellClassIndex The index of the cell.
-     * @param fromCell         The cell from which the edge comes from.
-     * @param newEdgeScore     The new edge score.
-     * @param newNodeScore     The new node score for this cell.
-     * @return 1 for best score, -1 for rejection score. Otherwise 0.
-     */
     public int scoreNewEdge(int toCellClassIndex, LatticeCell fromCell, double newEdgeScore, double newNodeScore) {
         if (fromCell == null) {
             return 0;
@@ -262,17 +250,28 @@ public class SequenceSolution extends Solution {
             temporaryCells[toCellClassIndex] = createMaxFirstQueue();
             queue = temporaryCells[toCellClassIndex];
             addResult = 1;
+//            System.out.println("Create new temporary cell for " + toCellClassIndex);
+//            System.out.println("New score for the cell " + newScoreTillHere + " at index " + currentPosition);
+//            if (newScoreTillHere > 0) {
+//                DebugUtils.pause();
+//            }
         } else if (queue.isEmpty()) {
             addResult = 1;
+//            System.out.println("Add to a empty queue");
         } else if (queue.peek().getScore() < newScoreTillHere) {
             addResult = 1;
-        }
-
-        boolean rejected = !queue.offer(new LatticeCell(newScoreTillHere, toCellClassIndex, fromCell));
-        if (rejected) {
+//            System.out.println("Better than the best " + queue.peek().getScore() + " < " + newScoreTillHere);
+//            System.out.println("Back pointer contribution " + fromCell.getScore() + " new score " + newEdgeScore);
+//            DebugUtils.pause();
+        } else if (queue.peekLast().getScore() >= newScoreTillHere) {
             addResult = -1;
         }
 
+//        System.out.println("Adding to " + toCellClassIndex + " from " + fromCell.getClassIndex() + " at position " +
+//                currentPosition);
+//        System.out.println("From score is " + fromCell.getScore() + " edge score is " + newEdgeScore);
+
+        queue.add(new LatticeCell(newScoreTillHere, toCellClassIndex, fromCell));
         return addResult;
     }
 

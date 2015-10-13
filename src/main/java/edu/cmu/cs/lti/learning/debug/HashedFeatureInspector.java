@@ -138,9 +138,9 @@ public class HashedFeatureInspector {
         String modelFile = args[0];
         String outputDirectory = args[1];
 
-        GraphWeightVector weights = SerializationUtils.deserialize(new FileInputStream(new File(modelFile)));
+        GraphWeightVector crfModel = SerializationUtils.deserialize(new FileInputStream(new File(modelFile)));
 
-        HashedFeatureInspector inspector = new HashedFeatureInspector(weights);
+        HashedFeatureInspector inspector = new HashedFeatureInspector(crfModel);
 
         inspector.writeInspects(new File(outputDirectory, "top100Aver"), inspector.loadTopKAverageFeatures(100));
         inspector.writeInspects(new File(outputDirectory, "top100Final"), inspector.loadTopKFinalFeatures(100));
