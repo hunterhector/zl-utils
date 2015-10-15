@@ -154,19 +154,12 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
-    public double dotProd(FeatureVector fv, String classLabel) {
-        return dotProd(fv, classAlphabet.getClassIndex(classLabel));
-    }
-
-    public double dotProd(FeatureVector fv, int nodeKey) {
-        AveragedWeightVector weights = nodeWeights[nodeKey];
-        if (weights != null) {
-            return weights.dotProd(fv);
-        } else {
-            return 0;
-        }
-    }
-
+    /**
+     * Compute dot product with a graph feature vector, which is the sum of dot products all the sub vectors.
+     *
+     * @param fv The feature vector.
+     * @return The dot product result.
+     */
     public double dotProd(GraphFeatureVector fv) {
         double prod = 0;
         for (TIntObjectIterator<FeatureVector> iter = fv.nodeFvIter(); iter.hasNext(); ) {
@@ -182,6 +175,41 @@ public class GraphWeightVector implements Serializable {
         return prod;
     }
 
+    /**
+     * Compute dot product with a feature vector that only have features on one node.
+     *
+     * @param fv         The feature vector.
+     * @param classLabel The node label.
+     * @return The dot product result.
+     */
+    public double dotProd(FeatureVector fv, String classLabel) {
+        return dotProd(fv, classAlphabet.getClassIndex(classLabel));
+    }
+
+    /**
+     * Compute dot product with a feature vector that only have features on one node.
+     *
+     * @param fv      The feature vector.
+     * @param nodeKey The node key.
+     * @return The dot product result.
+     */
+    public double dotProd(FeatureVector fv, int nodeKey) {
+        AveragedWeightVector weights = nodeWeights[nodeKey];
+        if (weights != null) {
+            return weights.dotProd(fv);
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * Compute dot product with a feature vector that only have features on one edge.
+     *
+     * @param fv          The feature vector.
+     * @param fromNodeKey The edge from node.
+     * @param toNodeKey   The edge end node.
+     * @return The dot product result.
+     */
     public double dotProd(FeatureVector fv, int fromNodeKey, int toNodeKey) {
         AveragedWeightVector weights = edgeWeights[fromNodeKey][toNodeKey];
         if (weights != null) {
@@ -191,6 +219,24 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
+    /**
+     * Compute dot product (using average weight) with a feature vector that only have features on one node.
+     *
+     * @param fv         The feature vector.
+     * @param classLabel The node label.
+     * @return The dot product result.
+     */
+    public double dotProdAver(FeatureVector fv, String classLabel) {
+        return dotProdAver(fv, classAlphabet.getClassIndex(classLabel));
+    }
+
+    /**
+     * Compute dot product (using average weight) with a feature vector that only have features on one node.
+     *
+     * @param fv      The feature vector.
+     * @param nodeKey The node key.
+     * @return The dot product result.
+     */
     public double dotProdAver(FeatureVector fv, int nodeKey) {
         AveragedWeightVector weights = nodeWeights[nodeKey];
         if (weights != null) {
@@ -200,6 +246,14 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
+    /**
+     * Compute dot product (using average weight) with a feature vector that only have features on one edge.
+     *
+     * @param fv          The feature vector.
+     * @param fromNodeKey The edge from node.
+     * @param toNodeKey   The edge end node.
+     * @return The dot product result.
+     */
     public double dotProdAver(FeatureVector fv, int fromNodeKey, int toNodeKey) {
         AveragedWeightVector weights = edgeWeights[fromNodeKey][toNodeKey];
         if (weights != null) {
