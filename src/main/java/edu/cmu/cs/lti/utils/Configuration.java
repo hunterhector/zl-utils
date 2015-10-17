@@ -68,7 +68,7 @@ public class Configuration {
         if (value == null) {
             return defaultVal;
         }
-        return value.equals("true");
+        return value.equalsIgnoreCase("true");
     }
 
     public int getInt(String key, int defaultVal) {
