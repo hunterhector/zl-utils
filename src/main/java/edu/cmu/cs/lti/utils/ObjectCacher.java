@@ -19,8 +19,9 @@ public class ObjectCacher {
 
     private File cachingDirectory;
 
-    public ObjectCacher(File cachingDirectory) {
+    public ObjectCacher(File cachingDirectory) throws IOException {
         this.cachingDirectory = cachingDirectory;
+        invalidate();
         FileUtils.ensureDirectory(cachingDirectory);
         logger.info("Cacher initialized at " + cachingDirectory.getAbsolutePath());
     }

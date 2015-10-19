@@ -30,21 +30,19 @@ public class CrfFeatureCacher extends FeatureCacher {
 
     private File featureCacheDirectory;
 
-    public CrfFeatureCacher(File cachingDirectory, boolean invalidate) throws IOException {
-        if (invalidate && cachingDirectory.exists()) {
-            FileUtils.deleteDirectory(cachingDirectory);
-            logger.info("Cache invalidated.");
-        }
-
-        if (!cachingDirectory.exists()) {
-            cachingDirectory.mkdirs();
-        } else if (!cachingDirectory.isDirectory()) {
-            throw new IllegalArgumentException(String.format("Caching path is not a directory : %s",
-                    cachingDirectory.getAbsolutePath()));
-        }
-
+    public CrfFeatureCacher(File cachingDirectory) throws IOException {
         featureCacheDirectory = cachingDirectory;
         featuresOfDocument = new HashMap<>();
+
+        // I am paranoid, so always invalidate existing cache.
+        invalidate();
+
+        if (!featureCacheDirectory.exists()) {
+            featureCacheDirectory.mkdirs();
+        } else if (!featureCacheDirectory.isDirectory()) {
+            throw new IllegalArgumentException(String.format("Caching path is not a directory : %s",
+                    featureCacheDirectory.getAbsolutePath()));
+        }
 
         logger.debug("Cache directory is " + featureCacheDirectory.getAbsolutePath());
     }
@@ -99,7 +97,6 @@ public class CrfFeatureCacher extends FeatureCacher {
         return true;
     }
 
-
     private boolean loadFeaturesFromFile(String documentKey) {
         File documentCache = new File(featureCacheDirectory, documentKey + normal_suffix);
 //        logger.debug("Try to load from file " + documentCache.getAbsolutePath());
@@ -115,5 +112,12 @@ public class CrfFeatureCacher extends FeatureCacher {
         }
         // Load failed because file not exists.
         return false;
+    }
+
+    public void invalidate() throws IOException {
+        if (featureCacheDirectory.exists()) {
+            FileUtils.deleteDirectory(featureCacheDirectory);
+            logger.info("Cache invalidated.");
+        }
     }
 }
