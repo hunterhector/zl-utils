@@ -34,11 +34,7 @@ public class ArrayBasedAveragedWeightVector extends AveragedWeightVector {
         for (FeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
             iter.next();
             int index = iter.featureIndex();
-//            double before = weights[index];
             weights[index] += iter.featureValue() * multiplier;
-
-//            System.out.println("Updating " + fv.getAlphabet().getFeatureNameRepre(index) + " from " + before + " to "
-//                    + weights[index]);
         }
     }
 
@@ -66,24 +62,6 @@ public class ArrayBasedAveragedWeightVector extends AveragedWeightVector {
         }
         return sum;
     }
-
-//    // TODO temporary verbose version
-//    public double dotProd(FeatureVector fv, FeatureAlphabet alphabet) {
-//        double sum = 0;
-//        for (FeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
-//            iter.next();
-//            sum += weights[iter.featureIndex()] * iter.featureValue();
-//            if (weights[iter.featureIndex()] != 0) {
-//                System.out.println("Feature : " + alphabet.getFeatureNameRepre(iter.featureIndex()) + " has weight "
-//                        + weights[iter.featureIndex()] + " multiply by value " + iter.featureValue()
-//                        + " result is " + weights[iter.featureIndex()] * iter.featureValue());
-//            }
-//        }
-//        if (sum != 0) {
-//            System.out.println("Result Sum is " + sum);
-//        }
-//        return sum;
-//    }
 
     @Override
     public double dotProdAver(FeatureVector fv) {

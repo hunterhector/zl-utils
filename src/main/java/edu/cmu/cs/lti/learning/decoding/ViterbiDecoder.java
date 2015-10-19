@@ -76,15 +76,11 @@ public class ViterbiDecoder extends SequenceDecoder {
             currentFeatureVectors[i] = newGraphFeatureVector();
         }
 
-//        int[] nodeBasedDecoding = new int[solution.getSequenceLength()];
-
         for (; !solution.finished(); solution.advance()) {
             int sequenceIndex = solution.getCurrentPosition();
             if (sequenceIndex == -1) {
                 continue;
             }
-
-//            logger.debug("\n######## Decoding " + sequenceIndex + "\n");
 
             key.setTokenId(sequenceIndex);
 
@@ -114,37 +110,13 @@ public class ViterbiDecoder extends SequenceDecoder {
             System.arraycopy(currentFeatureVectors, 0, previousColFeatureVectors, 0, previousColFeatureVectors.length);
 
             for (int i = 0; i < currentFeatureVectors.length; i++) {
-//                logger.debug("Current features are : ");
-//                logger.debug(currentFeatureVectors[i].readableNodeVector());
                 currentFeatureVectors[i] = newGraphFeatureVector();
             }
 
-//            DebugUtils.pause();
-
-//            MutableDouble debugBestNodeScore = new MutableDouble();
-//            MutableBoolean debugCurrentIsBest = new MutableBoolean();
-//            debugBestNodeScore.setValue(Double.NEGATIVE_INFINITY);
-//            debugCurrentIsBest.setFalse();
-
             // Fill up lattice score for each of class in the current column.
-            solution.getCurrentPossibleClassIndices().forEach(classIndex -> {
-//                logger.debug("\n#######Decoding class " + classAlphabet.getClassName(classIndex) + "\n");
-
+            // TODO currently this creates a IllegalThreadState, some threads didn't exits.
+            solution.getCurrentPossibleClassIndices().parallel().forEach(classIndex -> {
                 double newNodeScore = nodeDotProd.apply(nodeFeature, classIndex);
-
-//                if (newNodeScore > debugBestNodeScore.getValue()) {
-//                    logger.debug("New best node is " + classAlphabet.getClassName(classIndex) + " at " +
-//                            sequenceIndex);
-//                    debugBestNodeScore.setValue(newNodeScore);
-//                    debugCurrentIsBest.setTrue();
-//                    weightVector.dotProdVerbose(nodeFeature, classIndex);
-//                    if (sequenceIndex < sequenceLength) {
-//                        nodeBasedDecoding[sequenceIndex] = classIndex;
-//                    }
-//                } else {
-//                    debugCurrentIsBest.setFalse();
-//                }
-
                 MutableInt argmaxPreviousState = new MutableInt(-1);
 
                 // Check which previous state gives the best score.
@@ -159,44 +131,6 @@ public class ViterbiDecoder extends SequenceDecoder {
                         if (addResult == 1) {
                             // The new score is the best.
                             argmaxPreviousState.setValue(prevState);
-//                            if (debugCurrentIsBest.booleanValue()) {
-//                                logger.info("For the class " + classAlphabet.getClassName(classIndex) + "  with max
-// " +
-//                                        "current node score : " + newNodeScore);
-//                                logger.info("Found a better previous state at " + classAlphabet.getClassName
-//                                        (prevState));
-//                                logger.info("Because new edge score is " + newEdgeScore + " , new node score is " +
-//                                        newNodeScore + " , previous cell score is " + previousBest.getScore() + " " +
-//                                        "which make a total of " + (previousBest.getScore() + newEdgeScore +
-//                                        newNodeScore));
-//                            }
-
-//                            if (newNodeScore != 0) {
-//                                logger.debug("Previous : " + classAlphabet.getClassName(prevState) + " to current : "
-//                                        + classAlphabet.getClassName(classIndex));
-//                                logger.debug("Best prev state is now " + classAlphabet.getClassName(prevState) + "
-// for "
-//                                        + sequenceIndex);
-//                                logger.debug("Prev state give score " + previousBest.getScore());
-//                                logger.debug("New node score is " + newNodeScore);
-////                                logger.debug("New Edge score from there is " + newEdgeScore);
-//                                logger.debug("New total score is then " + (previousBest.getScore() + newEdgeScore +
-//                                        newNodeScore));
-//                            }
-
-//                            logger.debug("Take a look at the edge weights:");
-//                            AveragedWeightVector edgeWeights = weightVector.getEdgeWeights(classIndex, prevState);
-//                            if (edgeWeights != null) {
-//                                for (int i = 0; i < edgeWeights.getFeatureSize(); i++) {
-//                                    double w = edgeWeights.getWeightAt(i);
-//                                    if (w != 0) {
-//                                        logger.debug("Weight at " +
-//                                                featureAlphabet.getFeatureNameRepre(i) + " is " + w);
-//                                    }
-//                                }
-//                            } else {
-//                                logger.debug("There are no edge weight here.");
-//                            }
                         } else if (addResult == -1) {
                             // The new score is worse than the worst, i.e. rejected by the heap. We don't
                             // need to check any scores that is worse than this.
@@ -212,44 +146,16 @@ public class ViterbiDecoder extends SequenceDecoder {
                 currentFeatureVectors[classIndex].extend(nodeFeature, classIndex);
                 // Taking features from previous best cell.
                 currentFeatureVectors[classIndex].extend(previousColFeatureVectors[bestPrev]);
-
                 // Adding features for the edge.
                 if (bestPrev == classIndex) {
                     // Note: additional condition that we are only interested in case where previous is the same.
                     currentFeatureVectors[classIndex].extend(edgeFeature, classIndex, bestPrev);
                 }
-
-//                DebugUtils.pause();
             });
         }
         solution.backTrace();
-//        System.out.println(solution.showBestBackPointerMap());
 
-//        boolean unmatchDecoding = false;
-//        for (int i = 0; i < nodeBasedDecoding.length; i++) {
-//            if (solution.getClassAt(i) != nodeBasedDecoding[i]) {
-//                unmatchDecoding = true;
-//            }
-//        }
-//
-//        if (unmatchDecoding) {
-//            logger.error("#########Node based decoding should match with backtrace with no edge features!");
-//            logger.error("Backtracing Solution is ");
-//            logger.error(solution.toString());
-//            logger.error("Node based decoding result is :");
-//            logger.error(IntStream.range(0, sequenceLength).mapToObj(solutionIndex -> solutionIndex + ":" +
-//                    classAlphabet.getClassName(nodeBasedDecoding[solutionIndex])).collect(Collectors.joining(", ")));
-//            DebugUtils.pause();
-//        }
-
-
-//        logger.info("Getting best feature vector from " + classAlphabet.getOutsideClassIndex());
         bestVector = currentFeatureVectors[classAlphabet.getOutsideClassIndex()];
-
-//        logger.info(bestVector.readableNodeVector());
-
-//        System.out.println(solution.showBestBackPointerMap());
-//        DebugUtils.pause();
     }
 
     @Override
