@@ -39,20 +39,37 @@ public class MultiStringDiskBackedCacher<T extends Serializable> {
     private final boolean discardAfter;
 
     /**
-     * @param cachingDirectory The main directory to store the disk based copy of the cache.
-     * @param weigher          The weighting method of a key, object pair.
-     * @param weightCapacity   The maximum weight capacity this cache can hold.
-     * @param discardAfter     Whether to discard the whole cache at {@link MultiStringDiskBackedCacher#close()}.
-     *                         Note that this cannot be true when the specified cachingDirectory is not empty to
-     *                         avoid accidental deletion of non-caching files.
+     * @param cachePath      The main directory to store the disk based copy of the cache.
+     * @param weigher        The weighting method of a key, object pair.
+     * @param weightCapacity The maximum weight capacity this cache can hold.
+     * @param discardAfter   Whether to discard the whole cache at {@link MultiStringDiskBackedCacher#close()}.
+     *                       Note that this cannot be true when the specified cachingDirectory is not empty to
+     *                       avoid accidental deletion of non-caching files.
      * @throws IOException
      * @throws CacheException Throw when cannot start the cache.
      */
-    public MultiStringDiskBackedCacher(File cachingDirectory, Weigher<List<String>, T> weigher, long weightCapacity,
+    public MultiStringDiskBackedCacher(String cachePath, Weigher<List<String>, T> weigher, long weightCapacity,
                                        boolean discardAfter) throws IOException, CacheException {
-        this.cachingDirectory = cachingDirectory;
+        this(cachePath, weigher, weightCapacity, discardAfter, "cache");
+    }
+
+    /**
+     * @param cachePath      The main directory to store the disk based copy of the cache.
+     * @param weigher        The weighting method of a key, object pair.
+     * @param weightCapacity The maximum weight capacity this cache can hold.
+     * @param discardAfter   Whether to discard the whole cache at {@link MultiStringDiskBackedCacher#close()}.
+     *                       Note that this cannot be true when the specified cachingDirectory is not empty to
+     *                       avoid accidental deletion of non-caching files.
+     * @param cacheSubfolder We will always create a sub-folder to store to the cached files.
+     * @throws IOException
+     * @throws CacheException Throw when cannot start the cache.
+     */
+    public MultiStringDiskBackedCacher(String cachePath, Weigher<List<String>, T> weigher, long weightCapacity,
+                                       boolean discardAfter, String cacheSubfolder) throws IOException, CacheException {
+        this.cachingDirectory = FileUtils.joinPathsAsFile(cachePath, cacheSubfolder);
         FileUtils.ensureDirectory(cachingDirectory);
-        logger.info("Cacher initialized at " + cachingDirectory.getAbsolutePath());
+
+        logger.info("Cacher initialized at " + cachePath);
 
         if (discardAfter) {
             logger.info("Cache configured to be deleted after usage.");
@@ -167,8 +184,8 @@ public class MultiStringDiskBackedCacher<T extends Serializable> {
      * @throws CacheException
      */
     public static void main(String[] argv) throws IOException, CacheException {
-        MultiStringDiskBackedCacher<String> testCacher = new MultiStringDiskBackedCacher<>(new File("data/temp")
-                , (k, v) -> 1, 10, false);
+        MultiStringDiskBackedCacher<String> testCacher = new MultiStringDiskBackedCacher<>("data/temp",
+                (k, v) -> 1, 10, false);
         String value = testCacher.get("k1");
         if (value == null) {
             testCacher.addWithMultiKey("v1", "k1");
