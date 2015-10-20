@@ -79,6 +79,15 @@ public class Configuration {
         return Integer.parseInt(value);
     }
 
+    public long getLong(String key, long defaultVal) {
+        String value = get(key);
+        if (value == null) {
+            return defaultVal;
+        }
+        return Long.parseLong(value);
+
+    }
+
     public double getDouble(String key, double defaultVal) {
         String val = get(key);
         if (val != null) {
