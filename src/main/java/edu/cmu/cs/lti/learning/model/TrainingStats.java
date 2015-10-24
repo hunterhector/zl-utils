@@ -1,6 +1,7 @@
 package edu.cmu.cs.lti.learning.model;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created with IntelliJ IDEA.
@@ -52,5 +53,14 @@ public class TrainingStats {
 
     public double getAverageOverallLoss() {
         return overallLoss / resetableInstanceCount;
+    }
+
+    public static void main(String[] argv) {
+        Logger logger = LoggerFactory.getLogger(TrainingStats.class);
+        TrainingStats trainingStats = new TrainingStats(5);
+
+        for (double l = 0.1; l < 1.2; l += 0.1) {
+            trainingStats.addLoss(logger, l);
+        }
     }
 }
