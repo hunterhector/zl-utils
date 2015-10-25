@@ -45,9 +45,6 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
             int index = iter.featureIndex();
             double updateAmount = iter.featureValue() * multiplier;
             weights.adjustOrPutValue(index, updateAmount, updateAmount);
-
-            // TODO DEBUG
-//            System.out.println("Update" + fv.getAlphabet().getFeatureNameRepre(index) + " to " + weights.get(index));
         }
     }
 
