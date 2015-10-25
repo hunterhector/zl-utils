@@ -1,9 +1,10 @@
 package edu.cmu.cs.lti.learning.model;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import gnu.trove.iterator.TIntObjectIterator;
-import gnu.trove.list.TIntList;
-import gnu.trove.list.linked.TIntLinkedList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 import org.apache.commons.lang3.SerializationUtils;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
@@ -14,9 +15,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -31,13 +30,9 @@ public class GraphWeightVector implements Serializable {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private AveragedWeightVector[] nodeWeights;
+    private TIntObjectMap<AveragedWeightVector> nodeWeights;
 
-    private AveragedWeightVector[][] edgeWeights;
-
-    private TIntList activedNodeKeys;
-
-    private List<Pair<Integer, Integer>> activedEdgeKeys;
+    private Table<Integer, Integer, AveragedWeightVector> edgeWeights;
 
     private ClassAlphabet classAlphabet;
 
@@ -45,104 +40,90 @@ public class GraphWeightVector implements Serializable {
 
     private int averageUpdateCount;
 
-    public GraphWeightVector(ClassAlphabet classAlphabet, FeatureAlphabet featureAlphabet) {
-        nodeWeights = new AveragedWeightVector[classAlphabet.size()];
+    private boolean useHashBaseWeighVector;
 
-        activedNodeKeys = new TIntLinkedList();
-        activedEdgeKeys = new ArrayList<>();
+    public GraphWeightVector(ClassAlphabet classAlphabet, FeatureAlphabet featureAlphabet) {
+        nodeWeights = new TIntObjectHashMap<>();
+        edgeWeights = HashBasedTable.create();
 
         this.featureAlphabet = featureAlphabet;
         this.classAlphabet = classAlphabet;
 
         averageUpdateCount = 0;
+        useHashBaseWeighVector = true;
+    }
 
-        // These are the largest objects that stores feature weights. Initialize them first then we will probably be
-        // fine with memory usage.
-        // Here all these weight vectors are arrays, which are fast but very space consuming.
-        for (int i = 0; i < nodeWeights.length; i++) {
-            addWeightVector(i);
+    private AveragedWeightVector newWeightVector() {
+        return useHashBaseWeighVector ? new HashBasedAveragedWeightVector(averageUpdateCount) :
+                new ArrayBasedAveragedWeightVector(featureAlphabet.getAlphabetSize(), averageUpdateCount);
+    }
+
+    private synchronized AveragedWeightVector getOrCreateNodeWeights(int classIndex) {
+        if (nodeWeights.containsKey(classIndex)) {
+            return nodeWeights.get(classIndex);
+        } else {
+            AveragedWeightVector v = newWeightVector();
+            nodeWeights.put(classIndex, v);
+            return v;
         }
-
-        edgeWeights = new AveragedWeightVector[classAlphabet.size()][classAlphabet.size()];
     }
 
-    public AveragedWeightVector getNodeWeights(int nodeIndex) {
-        return nodeWeights[nodeIndex];
-    }
-
-    public AveragedWeightVector getEdgeWeights(int endNodeIndex, int fromNodeIndex) {
-//        logger.debug("Successfully get weight at " + fromNodeIndex + " to " + endNodeIndex);
-        return edgeWeights[endNodeIndex][fromNodeIndex];
-    }
-
-    private void addWeightVector(int classIndex) {
-        nodeWeights[classIndex] = new HashBasedAveragedWeightVector(averageUpdateCount);
-        activedNodeKeys.add(classIndex);
-    }
-
-    private void addWeightVector(int rowIndex, int colIndex) {
-        edgeWeights[rowIndex][colIndex] = new HashBasedAveragedWeightVector(averageUpdateCount);
-        activedEdgeKeys.add(Pair.with(rowIndex, colIndex));
+    private synchronized AveragedWeightVector getOrCreateEdgeWeights(int rowIndex, int colIndex) {
+        if (edgeWeights.contains(rowIndex, colIndex)) {
+            return edgeWeights.get(rowIndex, colIndex);
+        } else {
+            AveragedWeightVector v = newWeightVector();
+            edgeWeights.put(rowIndex, colIndex, v);
+            return v;
+        }
     }
 
     public Iterator<Pair<Integer, AveragedWeightVector>> nodeWeightIterator() {
-        return new Iterator<Pair<Integer, AveragedWeightVector>>() {
-            int activeKeyIndex = 0;
+        TIntObjectIterator<AveragedWeightVector> iter = nodeWeights.iterator();
 
+        return new Iterator<Pair<Integer, AveragedWeightVector>>() {
             @Override
             public boolean hasNext() {
-                return activeKeyIndex < activedNodeKeys.size();
+                return iter.hasNext();
             }
 
             @Override
             public Pair<Integer, AveragedWeightVector> next() {
-                int activeKey = activedNodeKeys.get(activeKeyIndex);
-                Pair<Integer, AveragedWeightVector> result = Pair.with(activeKey, nodeWeights[activeKey]);
-                activeKeyIndex++;
-                return result;
+                iter.advance();
+                return Pair.with(iter.key(), iter.value());
             }
         };
     }
 
     public Iterator<Triplet<Integer, Integer, AveragedWeightVector>> edgeWeightIterator() {
+        Iterator<Table.Cell<Integer, Integer, AveragedWeightVector>> iter = edgeWeights.cellSet().iterator();
+
         return new Iterator<Triplet<Integer, Integer, AveragedWeightVector>>() {
-
-            Iterator<Pair<Integer, Integer>> bikey = activedEdgeKeys.iterator();
-
             @Override
             public boolean hasNext() {
-                return bikey.hasNext();
+                return iter.hasNext();
             }
 
             @Override
             public Triplet<Integer, Integer, AveragedWeightVector> next() {
-                Pair<Integer, Integer> key = bikey.next();
-                return Triplet.with(key.getValue0(), key.getValue1(), edgeWeights[key.getValue0()][key.getValue1()]);
+                Table.Cell<Integer, Integer, AveragedWeightVector> cell = iter.next();
+                return Triplet.with(cell.getRowKey(), cell.getColumnKey(), cell.getValue());
             }
         };
     }
 
-    public void updateWeightsBy(FeatureVector fv, int currentKey, double multiplier) {
-        if (nodeWeights[currentKey] == null) {
-            addWeightVector(currentKey);
-        }
-
-        nodeWeights[currentKey].updateWeightsBy(fv, multiplier);
+    public synchronized void updateWeightsBy(FeatureVector fv, int currentKey, double multiplier) {
+        getOrCreateNodeWeights(currentKey).updateWeightsBy(fv, multiplier);
     }
 
-    public void updateWeightsBy(FeatureVector fv, int currentKey, int previousKey, double multiplier) {
-        if (edgeWeights[currentKey][previousKey] == null) {
-            addWeightVector(currentKey, previousKey);
-        }
-
+    public synchronized void updateWeightsBy(FeatureVector fv, int currentKey, int previousKey, double multiplier) {
 //        logger.debug("Updating features for " + classAlphabet.getClassName(currentKey) + " and " + classAlphabet
 //                .getClassName(previousKey) + " by " + multiplier);
 //        logger.debug(fv.readableString());
-
-        edgeWeights[currentKey][previousKey].updateWeightsBy(fv, multiplier);
+        getOrCreateEdgeWeights(currentKey, previousKey).updateWeightsBy(fv, multiplier);
     }
 
-    public void updateWeightsBy(GraphFeatureVector updateVector, double multiplier) {
+    public synchronized void updateWeightsBy(GraphFeatureVector updateVector, double multiplier) {
         for (TIntObjectIterator<FeatureVector> iter = updateVector.nodeFvIter(); iter.hasNext(); ) {
             iter.advance();
             updateWeightsBy(iter.value(), iter.key(), multiplier);
@@ -154,12 +135,15 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
-    /**
-     * Compute dot product with a graph feature vector, which is the sum of dot products all the sub vectors.
-     *
-     * @param fv The feature vector.
-     * @return The dot product result.
-     */
+    public double dotProd(FeatureVector fv, String classLabel) {
+        return dotProd(fv, classAlphabet.getClassIndex(classLabel));
+    }
+
+    public double dotProd(FeatureVector fv, int nodeKey) {
+        AveragedWeightVector weights = getOrCreateNodeWeights(nodeKey);
+        return weights.dotProd(fv);
+    }
+
     public double dotProd(GraphFeatureVector fv) {
         double prod = 0;
         for (TIntObjectIterator<FeatureVector> iter = fv.nodeFvIter(); iter.hasNext(); ) {
@@ -175,43 +159,8 @@ public class GraphWeightVector implements Serializable {
         return prod;
     }
 
-    /**
-     * Compute dot product with a feature vector that only have features on one node.
-     *
-     * @param fv         The feature vector.
-     * @param classLabel The node label.
-     * @return The dot product result.
-     */
-    public double dotProd(FeatureVector fv, String classLabel) {
-        return dotProd(fv, classAlphabet.getClassIndex(classLabel));
-    }
-
-    /**
-     * Compute dot product with a feature vector that only have features on one node.
-     *
-     * @param fv      The feature vector.
-     * @param nodeKey The node key.
-     * @return The dot product result.
-     */
-    public double dotProd(FeatureVector fv, int nodeKey) {
-        AveragedWeightVector weights = nodeWeights[nodeKey];
-        if (weights != null) {
-            return weights.dotProd(fv);
-        } else {
-            return 0;
-        }
-    }
-
-    /**
-     * Compute dot product with a feature vector that only have features on one edge.
-     *
-     * @param fv          The feature vector.
-     * @param fromNodeKey The edge from node.
-     * @param toNodeKey   The edge end node.
-     * @return The dot product result.
-     */
     public double dotProd(FeatureVector fv, int fromNodeKey, int toNodeKey) {
-        AveragedWeightVector weights = edgeWeights[fromNodeKey][toNodeKey];
+        AveragedWeightVector weights = getOrCreateEdgeWeights(fromNodeKey, toNodeKey);
         if (weights != null) {
             return weights.dotProd(fv);
         } else {
@@ -219,48 +168,18 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
-    /**
-     * Compute dot product (using average weight) with a feature vector that only have features on one node.
-     *
-     * @param fv         The feature vector.
-     * @param classLabel The node label.
-     * @return The dot product result.
-     */
     public double dotProdAver(FeatureVector fv, String classLabel) {
         return dotProdAver(fv, classAlphabet.getClassIndex(classLabel));
     }
 
-    /**
-     * Compute dot product (using average weight) with a feature vector that only have features on one node.
-     *
-     * @param fv      The feature vector.
-     * @param nodeKey The node key.
-     * @return The dot product result.
-     */
     public double dotProdAver(FeatureVector fv, int nodeKey) {
-        AveragedWeightVector weights = nodeWeights[nodeKey];
-        if (weights != null) {
-            return weights.dotProdAver(fv);
-        } else {
-            return 0;
-        }
+        AveragedWeightVector weights = getOrCreateNodeWeights(nodeKey);
+        return weights.dotProdAver(fv);
     }
 
-    /**
-     * Compute dot product (using average weight) with a feature vector that only have features on one edge.
-     *
-     * @param fv          The feature vector.
-     * @param fromNodeKey The edge from node.
-     * @param toNodeKey   The edge end node.
-     * @return The dot product result.
-     */
     public double dotProdAver(FeatureVector fv, int fromNodeKey, int toNodeKey) {
-        AveragedWeightVector weights = edgeWeights[fromNodeKey][toNodeKey];
-        if (weights != null) {
-            return weights.dotProdAver(fv);
-        } else {
-            return 0;
-        }
+        AveragedWeightVector weights = getOrCreateEdgeWeights(fromNodeKey, toNodeKey);
+        return weights.dotProdAver(fv);
     }
 
     public void write(File outputFile) throws FileNotFoundException {
@@ -269,28 +188,26 @@ public class GraphWeightVector implements Serializable {
         deconsolidate();
     }
 
-    private void consolidate() {
+    private synchronized void consolidate() {
         logger.info("Consolidating graph weights.");
         applyToAll(AveragedWeightVector::consolidate);
     }
 
-    public void deconsolidate() {
+    public synchronized void deconsolidate() {
         logger.info("Deconsolidating graph weights.");
         applyToAll(AveragedWeightVector::deconsolidate);
     }
 
     private void applyToAll(Consumer<AveragedWeightVector> oper) {
-        for (AveragedWeightVector nodeWeight : nodeWeights) {
+        for (AveragedWeightVector nodeWeight : nodeWeights.valueCollection()) {
             if (nodeWeight != null) {
                 oper.accept(nodeWeight);
             }
         }
 
-        for (AveragedWeightVector[] edgeWeightVectorRow : edgeWeights) {
-            for (AveragedWeightVector edgeWeightVector : edgeWeightVectorRow) {
-                if (edgeWeightVector != null) {
-                    oper.accept(edgeWeightVector);
-                }
+        for (AveragedWeightVector edgeWeightVector : edgeWeights.values()) {
+            if (edgeWeightVector != null) {
+                oper.accept(edgeWeightVector);
             }
         }
     }
