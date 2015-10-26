@@ -1,6 +1,6 @@
 package edu.cmu.cs.lti.learning.training;
 
-import edu.cmu.cs.lti.learning.cache.CrfState;
+import edu.cmu.cs.lti.learning.cache.CrfSequenceKey;
 import edu.cmu.cs.lti.learning.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,22 +23,24 @@ public class AveragePerceptronTrainer {
     private GraphWeightVector weightVector;
     private double stepSize;
 
-
     /**
      * A vanilla average perceptron, with a fixed step size.
      *
-     * @param decoder  The sequence decoder.
-     * @param stepSize A fixed step size for each update.
+     * @param decoder       The sequence decoder.
+     * @param classAlphabet The alphabet of possible output classes.
+     * @param alphabet      The alphabet of features.
+     * @param featureSpec   The feature specifications.
+     * @param stepSize      A fixed step size for each update.
      */
-    public AveragePerceptronTrainer(SequenceDecoder decoder, ClassAlphabet classAlphabet, double stepSize,
-                                    FeatureAlphabet alphabet) {
+    public AveragePerceptronTrainer(SequenceDecoder decoder, ClassAlphabet classAlphabet, FeatureAlphabet alphabet,
+                                    String featureSpec, double stepSize) {
         this.decoder = decoder;
-        weightVector = new GraphWeightVector(classAlphabet, alphabet);
+        weightVector = new GraphWeightVector(classAlphabet, alphabet, featureSpec);
         this.stepSize = stepSize;
     }
 
     public double trainNext(SequenceSolution goldSolution, GraphFeatureVector goldFv, ChainFeatureExtractor extractor,
-                            double lagrangian, CrfState key) {
+                            double lagrangian, CrfSequenceKey key) {
         decoder.decode(extractor, weightVector, goldSolution.getSequenceLength(), lagrangian, key);
         SequenceSolution prediction = decoder.getDecodedPrediction();
         double loss = goldSolution.loss(prediction);

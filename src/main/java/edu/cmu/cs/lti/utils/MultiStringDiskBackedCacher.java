@@ -38,6 +38,8 @@ public class MultiStringDiskBackedCacher<T extends Serializable> {
 
     private final boolean discardAfter;
 
+    private final boolean saveCaches;
+
     /**
      * @param cachePath      The main directory to store the disk based copy of the cache.
      * @param weigher        The weighting method of a key, object pair.
@@ -71,16 +73,19 @@ public class MultiStringDiskBackedCacher<T extends Serializable> {
 
         logger.info("Cacher initialized at " + cachePath);
 
+        this.saveCaches = !discardAfter;
         if (discardAfter) {
-            logger.info("Cache configured to be deleted after usage.");
+            logger.info("Cache configured to be deleted after the process.");
+        } else {
+            logger.info("Cache will be retained after the process.");
         }
 
         if (cachingDirectory.list().length > 0) {
             if (discardAfter) {
-                throw new CacheException("Cache directory is not empty, not safe to discard after use.");
-            } else {
-                logger.warn("Starting the cache with existing cache directory.");
+                logger.warn("Cache directory is not empty, not safe to discard after use, will not delete the dir.");
+                discardAfter = false;
             }
+            logger.warn("Starting the cache with existing cache directory.");
         }
 
         CacheLoader<List<String>, T> diskBackedLoader = new CacheLoader<List<String>, T>() {
@@ -168,7 +173,9 @@ public class MultiStringDiskBackedCacher<T extends Serializable> {
         if (discardAfter) {
             logger.info("Invalidating cache at " + cachingDirectory.getAbsolutePath());
             org.apache.commons.io.FileUtils.deleteDirectory(cachingDirectory);
-        } else {
+        }
+
+        if (saveCaches) {
             logger.info("Writing caches to disk.");
             for (Map.Entry<List<String>, T> entry : cache.asMap().entrySet()) {
                 writeCacheObject(entry.getValue(), entry.getKey());

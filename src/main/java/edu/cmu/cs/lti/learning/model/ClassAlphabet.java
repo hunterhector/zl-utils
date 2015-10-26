@@ -13,23 +13,21 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 /**
- * Created with IntelliJ IDEA.
- * Date: 8/20/15
- * Time: 11:07 PM
+ * A synchronized implementation that holds class information (what are the possible output of a classification tasks).
  *
  * @author Zhengzhong Liu
  */
 public class ClassAlphabet implements Serializable {
     private static final long serialVersionUID = -4677347415571534910L;
 
-    String noneOfTheAboveClass = "NONE";
+    public static final String noneOfTheAboveClass = "NONE";
 
-    String outsideClass = "OUTSIDE";
+    public static final String outsideClass = "OUTSIDE";
 
-    TObjectIntMap<String> classIndices = new TObjectIntHashMap<>();
-    ArrayList<String> classes;
-    ArrayList<List<String>> backoffClassNames;
-    int index;
+    private TObjectIntMap<String> classIndices = new TObjectIntHashMap<>();
+    private ArrayList<String> classes;
+    private ArrayList<List<String>> backoffClassNames;
+    private int index; // currently we synchronize the only accesser of it.
 
     public ClassAlphabet(boolean noneOfTheAbove, boolean withOutsideClass) {
         this(new String[0], noneOfTheAbove, withOutsideClass);
@@ -61,19 +59,23 @@ public class ClassAlphabet implements Serializable {
         }
     }
 
-    public int addClass(String className) {
+    /**
+     * Add a class name into the classes. Return the index of the added class name.
+     *
+     * @param className
+     * @return
+     */
+    public synchronized int addClass(String className) {
         if (!classIndices.containsKey(className)) {
             classes.add(className);
             classIndices.put(className, index);
             backoffClassNames.add(splitAsClassNames(className));
             index++;
         }
-        return index;
+        return index - 1;
     }
 
     /**
-     * // TODO this should be placed in a more specific alphabet class.
-     * <p>
      * Split class names into subclass names. The full class name might be a concatenation of multiple classes and
      * might contain hierarchy. The concatenation is represented by ";" and the hierarchy is represented as "_".
      * This method will split a class name of "A_B;C_D" in the following:
@@ -84,14 +86,13 @@ public class ClassAlphabet implements Serializable {
      * A    The highest hierarchy of each class
      * C    The highest hierarchy of each class
      *
-     * @param fullClassName
-     * @return
+     * @param fullClassName The full class name.
+     * @return The list of class names after splitting.
      */
     private List<String> splitAsClassNames(String fullClassName) {
         // Add multiple class features by decompose the class.
         List<String> classNames = new ArrayList<>();
 
-//        classNames.add(fullClassName);
         String[] individualClassNames = fullClassName.split(" ; ");
         if (individualClassNames.length > 1) {
             // The current full class name itself.
@@ -107,7 +108,7 @@ public class ClassAlphabet implements Serializable {
         return classNames;
     }
 
-    public int getClassIndex(String className) {
+    public synchronized int getClassIndex(String className) {
         if (classIndices.containsKey(className)) {
             return classIndices.get(className);
         } else {
@@ -115,35 +116,28 @@ public class ClassAlphabet implements Serializable {
         }
     }
 
-    public String getClassName(int classIndex) {
+    public synchronized String getClassName(int classIndex) {
         return classes.get(classIndex);
     }
 
+    // TODO use this to share information between classes.
     public List<String> getSplittedClassName(int classIndex) {
         return backoffClassNames.get(classIndex);
     }
 
-    public int size() {
+    public synchronized int size() {
         return classes.size();
-    }
-
-    public String getNoneOfTheAboveClass() {
-        return noneOfTheAboveClass;
     }
 
     public int getNoneOfTheAboveClassIndex() {
         return classIndices.get(noneOfTheAboveClass);
     }
 
-    public String getOutsideClass() {
-        return outsideClass;
-    }
-
     public int getOutsideClassIndex() {
         return classIndices.get(outsideClass);
     }
 
-    public IntStream getNormalClassesRange() {
+    public synchronized IntStream getNormalClassesRange() {
         return IntStream.range(1, classes.size());
     }
 

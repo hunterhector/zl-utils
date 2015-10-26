@@ -1,10 +1,10 @@
 package edu.cmu.cs.lti.learning.decoding;
 
-import edu.cmu.cs.lti.learning.cache.CrfFeatureCacher;
-import edu.cmu.cs.lti.learning.cache.CrfState;
+import edu.cmu.cs.lti.learning.cache.CrfSequenceKey;
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.training.SequenceDecoder;
 import edu.cmu.cs.lti.utils.Functional;
+import edu.cmu.cs.lti.utils.MultiStringDiskBackedCacher;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,23 +25,26 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     private GraphFeatureVector bestVector;
 
-    private CrfFeatureCacher cacher;
+    private MultiStringDiskBackedCacher<FeatureVector[]> featureCacher;
 
     private int kBest;
 
-    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher) {
-        this(featureAlphabet, classAlphabet, cacher, false);
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet,
+                          MultiStringDiskBackedCacher<FeatureVector[]> featureCacher) {
+        this(featureAlphabet, classAlphabet, featureCacher, false);
     }
 
-    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher, boolean
-            binaryFeature) {
-        this(featureAlphabet, classAlphabet, cacher, binaryFeature, 1);
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet,
+                          MultiStringDiskBackedCacher<FeatureVector[]> featureCacher, boolean
+                                  binaryFeature) {
+        this(featureAlphabet, classAlphabet, featureCacher, binaryFeature, 1);
     }
 
-    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, CrfFeatureCacher cacher, boolean
-            binaryFeature, int kBest) {
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet,
+                          MultiStringDiskBackedCacher<FeatureVector[]> featureCacher, boolean
+                                  binaryFeature, int kBest) {
         super(featureAlphabet, classAlphabet, binaryFeature);
-        this.cacher = cacher;
+        this.featureCacher = featureCacher;
         this.kBest = kBest;
     }
 
@@ -56,7 +59,7 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     @Override
     public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, double lagrangian, CrfState key, boolean useAverage) {
+            sequenceLength, double lagrangian, CrfSequenceKey key, boolean useAverage) {
         solution = new SequenceSolution(classAlphabet, sequenceLength, kBest);
 
         // Dot product function on the node (i.e. only take features depend on current class)
@@ -84,25 +87,29 @@ public class ViterbiDecoder extends SequenceDecoder {
 
             key.setTokenId(sequenceIndex);
 
+            String[] multiKey = new String[]{key.getDocumentKey(), String.valueOf(key.getSequenceId()),
+                    String.valueOf(sequenceIndex)};
+
             // Feature vector to be extracted or loaded from cache.
             FeatureVector nodeFeature;
             FeatureVector edgeFeature;
 
             FeatureVector[] allBaseFeatures = null;
-            if (cacher != null) {
-                allBaseFeatures = cacher.getCachedFeatures(key);
+            if (featureCacher != null) {
+                allBaseFeatures = featureCacher.get(multiKey);
             }
 
             if (allBaseFeatures == null) {
                 nodeFeature = newFeatureVector();
                 edgeFeature = newFeatureVector();
                 extractor.extract(sequenceIndex, nodeFeature, edgeFeature);
-                if (cacher != null) {
-                    cacher.addFeaturesToCache(key, nodeFeature, edgeFeature);
+                if (featureCacher != null) {
+                    featureCacher.addWithMultiKey(new FeatureVector[]{nodeFeature, edgeFeature}, multiKey);
                 }
             } else {
                 nodeFeature = allBaseFeatures[0];
                 edgeFeature = allBaseFeatures[1];
+                logger.info("Loaded features from cache.");
             }
 
             // Before move on to calculate the features of current index, copy the vector of the previous column,
@@ -193,7 +200,6 @@ public class ViterbiDecoder extends SequenceDecoder {
             }
         }
 
-//        logger.info("Done extracting solution feature");
         return fv;
     }
 }

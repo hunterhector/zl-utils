@@ -7,7 +7,7 @@ package edu.cmu.cs.lti.learning.cache;
  *
  * @author Zhengzhong Liu
  */
-public class CrfState extends FeatureCacheKey {
+public class CrfSequenceKey {
     private String documentKey;
     private int sequenceId;
     private int tokenId;

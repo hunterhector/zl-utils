@@ -34,20 +34,25 @@ public class GraphWeightVector implements Serializable {
 
     private Table<Integer, Integer, AveragedWeightVector> edgeWeights;
 
-    private ClassAlphabet classAlphabet;
+    private final ClassAlphabet classAlphabet;
 
-    private FeatureAlphabet featureAlphabet;
+    private final FeatureAlphabet featureAlphabet;
+
+    // Specification of the feature extractors, used to validate whether the weights are trained using the same set
+    // of features.
+    private final String featureSpec;
 
     private int averageUpdateCount;
 
     private boolean useHashBaseWeighVector;
 
-    public GraphWeightVector(ClassAlphabet classAlphabet, FeatureAlphabet featureAlphabet) {
+    public GraphWeightVector(ClassAlphabet classAlphabet, FeatureAlphabet featureAlphabet, String featureSpec) {
         nodeWeights = new TIntObjectHashMap<>();
         edgeWeights = HashBasedTable.create();
 
         this.featureAlphabet = featureAlphabet;
         this.classAlphabet = classAlphabet;
+        this.featureSpec = featureSpec;
 
         averageUpdateCount = 0;
         useHashBaseWeighVector = true;
@@ -227,5 +232,9 @@ public class GraphWeightVector implements Serializable {
     public void updateAverageWeights() {
         applyToAll(AveragedWeightVector::updateAverageWeight);
         averageUpdateCount++;
+    }
+
+    public String getFeatureSpec() {
+        return featureSpec;
     }
 }

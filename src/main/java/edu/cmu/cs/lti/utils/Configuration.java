@@ -99,6 +99,9 @@ public class Configuration {
 
     public File getFile(String key) {
         String val = get(key);
+        if (val == null) {
+            return null;
+        }
         return new File(val);
     }
 

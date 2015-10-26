@@ -3,6 +3,7 @@ package edu.cmu.cs.lti.learning.model;
 import com.google.common.base.Charsets;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import gnu.trove.TCollections;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import org.slf4j.Logger;
@@ -10,9 +11,8 @@ import org.slf4j.LoggerFactory;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
- * Created with IntelliJ IDEA.
- * Date: 8/20/15
- * Time: 10:48 PM
+ * A hash based implementation of the feature alphabet. Because the use of hashing, the lookup of feature index is
+ * easily thread-safe. Feature counters are made thread-safe by employing synchronized Trove maps.
  *
  * @author Zhengzhong Liu
  */
@@ -66,7 +66,7 @@ public class HashAlphabet extends FeatureAlphabet {
         if (storeReadable) {
             TObjectIntMap<String> counter = featureCounters[hashVal];
             if (counter == null) {
-                counter = new TObjectIntHashMap<>();
+                counter = TCollections.synchronizedMap(new TObjectIntHashMap<>());
                 featureCounters[hashVal] = counter;
             }
             counter.adjustOrPutValue("[" + feature + "]", 1, 1);

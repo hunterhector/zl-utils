@@ -1,6 +1,6 @@
 package edu.cmu.cs.lti.learning.training;
 
-import edu.cmu.cs.lti.learning.cache.CrfState;
+import edu.cmu.cs.lti.learning.cache.CrfSequenceKey;
 import edu.cmu.cs.lti.learning.model.*;
 
 /**
@@ -17,7 +17,7 @@ public abstract class SequenceDecoder {
 
     protected boolean useBinary;
 
-    private CrfState dummyKey = new CrfState();
+    private CrfSequenceKey dummyKey = new CrfSequenceKey();
 
     public SequenceDecoder(HashAlphabet featureAlphabet, ClassAlphabet classAlphabet) {
         this(featureAlphabet, classAlphabet, false);
@@ -47,12 +47,12 @@ public abstract class SequenceDecoder {
     }
 
     public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, double lagrangian, CrfState key) {
+            sequenceLength, double lagrangian, CrfSequenceKey key) {
         decode(extractor, weightVector, sequenceLength, lagrangian, key, false);
     }
 
     public abstract void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, double lagrangian, CrfState key, boolean useAverage);
+            sequenceLength, double lagrangian, CrfSequenceKey key, boolean useAverage);
 
     public abstract SequenceSolution getDecodedPrediction();
 
