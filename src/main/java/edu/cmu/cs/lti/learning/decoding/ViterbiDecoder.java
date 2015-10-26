@@ -109,7 +109,6 @@ public class ViterbiDecoder extends SequenceDecoder {
             } else {
                 nodeFeature = allBaseFeatures[0];
                 edgeFeature = allBaseFeatures[1];
-                logger.info("Loaded features from cache.");
             }
 
             // Before move on to calculate the features of current index, copy the vector of the previous column,
