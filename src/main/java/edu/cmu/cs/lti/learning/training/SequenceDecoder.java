@@ -1,7 +1,7 @@
 package edu.cmu.cs.lti.learning.training;
 
-import edu.cmu.cs.lti.learning.cache.CrfSequenceKey;
 import edu.cmu.cs.lti.learning.model.*;
+import gnu.trove.map.TIntObjectMap;
 
 /**
  * Created with IntelliJ IDEA.
@@ -16,8 +16,6 @@ public abstract class SequenceDecoder {
     protected FeatureAlphabet featureAlphabet;
 
     protected boolean useBinary;
-
-    private CrfSequenceKey dummyKey = new CrfSequenceKey();
 
     public SequenceDecoder(HashAlphabet featureAlphabet, ClassAlphabet classAlphabet) {
         this(featureAlphabet, classAlphabet, false);
@@ -43,16 +41,16 @@ public abstract class SequenceDecoder {
 
     public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
             sequenceLength, double lagrangian, boolean useAverage) {
-        decode(extractor, weightVector, sequenceLength, lagrangian, dummyKey, useAverage);
+        decode(extractor, weightVector, sequenceLength, lagrangian, null, useAverage);
     }
 
     public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, double lagrangian, CrfSequenceKey key) {
-        decode(extractor, weightVector, sequenceLength, lagrangian, key, false);
+            sequenceLength, double lagrangian, TIntObjectMap<FeatureVector[]> cachedFeatures) {
+        decode(extractor, weightVector, sequenceLength, lagrangian, cachedFeatures, false);
     }
 
     public abstract void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, double lagrangian, CrfSequenceKey key, boolean useAverage);
+            sequenceLength, double lagrangian, TIntObjectMap<FeatureVector[]> cachedFeatures, boolean useAverage);
 
     public abstract SequenceSolution getDecodedPrediction();
 

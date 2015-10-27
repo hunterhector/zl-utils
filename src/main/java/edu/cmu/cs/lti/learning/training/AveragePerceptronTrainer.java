@@ -1,7 +1,7 @@
 package edu.cmu.cs.lti.learning.training;
 
-import edu.cmu.cs.lti.learning.cache.CrfSequenceKey;
 import edu.cmu.cs.lti.learning.model.*;
+import gnu.trove.map.TIntObjectMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,8 +40,8 @@ public class AveragePerceptronTrainer {
     }
 
     public double trainNext(SequenceSolution goldSolution, GraphFeatureVector goldFv, ChainFeatureExtractor extractor,
-                            double lagrangian, CrfSequenceKey key) {
-        decoder.decode(extractor, weightVector, goldSolution.getSequenceLength(), lagrangian, key);
+                            double lagrangian, TIntObjectMap<FeatureVector[]> featureCache) {
+        decoder.decode(extractor, weightVector, goldSolution.getSequenceLength(), lagrangian, featureCache);
         SequenceSolution prediction = decoder.getDecodedPrediction();
         double loss = goldSolution.loss(prediction);
 

@@ -29,7 +29,7 @@ import java.util.concurrent.ExecutionException;
  *
  * @author Zhengzhong Liu
  */
-public class MultiStringDiskBackedCacher<T extends Serializable> {
+public class MultiKeyDiskCacher<T extends Serializable> {
     private Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private File cachingDirectory;
@@ -44,14 +44,14 @@ public class MultiStringDiskBackedCacher<T extends Serializable> {
      * @param cachePath      The main directory to store the disk based copy of the cache.
      * @param weigher        The weighting method of a key, object pair.
      * @param weightCapacity The maximum weight capacity this cache can hold.
-     * @param discardAfter   Whether to discard the whole cache at {@link MultiStringDiskBackedCacher#close()}.
+     * @param discardAfter   Whether to discard the whole cache at {@link MultiKeyDiskCacher#close()}.
      *                       Note that this cannot be true when the specified cachingDirectory is not empty to
      *                       avoid accidental deletion of non-caching files.
      * @throws IOException
      * @throws CacheException Throw when cannot start the cache.
      */
-    public MultiStringDiskBackedCacher(String cachePath, Weigher<List<String>, T> weigher, long weightCapacity,
-                                       boolean discardAfter) throws IOException, CacheException {
+    public MultiKeyDiskCacher(String cachePath, Weigher<List<String>, T> weigher, long weightCapacity,
+                              boolean discardAfter) throws IOException, CacheException {
         this(cachePath, weigher, weightCapacity, discardAfter, "cache");
     }
 
@@ -59,15 +59,15 @@ public class MultiStringDiskBackedCacher<T extends Serializable> {
      * @param cachePath      The main directory to store the disk based copy of the cache.
      * @param weigher        The weighting method of a key, object pair.
      * @param weightCapacity The maximum weight capacity this cache can hold.
-     * @param discardAfter   Whether to discard the whole cache at {@link MultiStringDiskBackedCacher#close()}.
+     * @param discardAfter   Whether to discard the whole cache at {@link MultiKeyDiskCacher#close()}.
      *                       Note that this cannot be true when the specified cachingDirectory is not empty to
      *                       avoid accidental deletion of non-caching files.
      * @param cacheSubfolder We will always create a sub-folder to store to the cached files.
      * @throws IOException
      * @throws CacheException Throw when cannot start the cache.
      */
-    public MultiStringDiskBackedCacher(String cachePath, Weigher<List<String>, T> weigher, long weightCapacity,
-                                       boolean discardAfter, String cacheSubfolder) throws IOException, CacheException {
+    public MultiKeyDiskCacher(String cachePath, Weigher<List<String>, T> weigher, long weightCapacity,
+                              boolean discardAfter, String cacheSubfolder) throws IOException, CacheException {
         this.cachingDirectory = FileUtils.joinPathsAsFile(cachePath, cacheSubfolder);
         FileUtils.ensureDirectory(cachingDirectory);
 
@@ -102,6 +102,7 @@ public class MultiStringDiskBackedCacher<T extends Serializable> {
 
         RemovalListener<List<String>, T> removalListener = notification -> {
             try {
+                logger.info("On removal ,writing objects out.");
                 writeCacheObject(notification.getValue(), notification.getKey());
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -191,7 +192,7 @@ public class MultiStringDiskBackedCacher<T extends Serializable> {
      * @throws CacheException
      */
     public static void main(String[] argv) throws IOException, CacheException {
-        MultiStringDiskBackedCacher<String> testCacher = new MultiStringDiskBackedCacher<>("data/temp",
+        MultiKeyDiskCacher<String> testCacher = new MultiKeyDiskCacher<>("data/temp",
                 (k, v) -> 1, 10, false);
         String value = testCacher.get("k1");
         if (value == null) {

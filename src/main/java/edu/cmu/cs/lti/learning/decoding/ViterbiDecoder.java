@@ -1,10 +1,9 @@
 package edu.cmu.cs.lti.learning.decoding;
 
-import edu.cmu.cs.lti.learning.cache.CrfSequenceKey;
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.training.SequenceDecoder;
 import edu.cmu.cs.lti.utils.Functional;
-import edu.cmu.cs.lti.utils.MultiStringDiskBackedCacher;
+import gnu.trove.map.TIntObjectMap;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,26 +24,22 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     private GraphFeatureVector bestVector;
 
-    private MultiStringDiskBackedCacher<FeatureVector[]> featureCacher;
+//    private MultiStringDiskBackedCacher<FeatureVector[]> featureCacher;
 
     private int kBest;
 
-    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet,
-                          MultiStringDiskBackedCacher<FeatureVector[]> featureCacher) {
-        this(featureAlphabet, classAlphabet, featureCacher, false);
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet) {
+        this(featureAlphabet, classAlphabet, false);
     }
 
-    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet,
-                          MultiStringDiskBackedCacher<FeatureVector[]> featureCacher, boolean
-                                  binaryFeature) {
-        this(featureAlphabet, classAlphabet, featureCacher, binaryFeature, 1);
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, boolean binaryFeature) {
+        this(featureAlphabet, classAlphabet, binaryFeature, 1);
     }
 
-    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet,
-                          MultiStringDiskBackedCacher<FeatureVector[]> featureCacher, boolean
-                                  binaryFeature, int kBest) {
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, boolean binaryFeature,
+                          int kBest) {
         super(featureAlphabet, classAlphabet, binaryFeature);
-        this.featureCacher = featureCacher;
+//        this.featureCacher = featureCacher;
         this.kBest = kBest;
     }
 
@@ -58,8 +53,8 @@ public class ViterbiDecoder extends SequenceDecoder {
     }
 
     @Override
-    public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, double lagrangian, CrfSequenceKey key, boolean useAverage) {
+    public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int sequenceLength,
+                       double lagrangian, TIntObjectMap<FeatureVector[]> featureCache, boolean useAverage) {
         solution = new SequenceSolution(classAlphabet, sequenceLength, kBest);
 
         // Dot product function on the node (i.e. only take features depend on current class)
@@ -85,26 +80,21 @@ public class ViterbiDecoder extends SequenceDecoder {
                 continue;
             }
 
-            key.setTokenId(sequenceIndex);
-
-            String[] multiKey = new String[]{key.getDocumentKey(), String.valueOf(key.getSequenceId()),
-                    String.valueOf(sequenceIndex)};
-
             // Feature vector to be extracted or loaded from cache.
             FeatureVector nodeFeature;
             FeatureVector edgeFeature;
 
             FeatureVector[] allBaseFeatures = null;
-            if (featureCacher != null) {
-                allBaseFeatures = featureCacher.get(multiKey);
+            if (featureCache != null) {
+                allBaseFeatures = featureCache.get(sequenceIndex);
             }
 
             if (allBaseFeatures == null) {
                 nodeFeature = newFeatureVector();
                 edgeFeature = newFeatureVector();
                 extractor.extract(sequenceIndex, nodeFeature, edgeFeature);
-                if (featureCacher != null) {
-                    featureCacher.addWithMultiKey(new FeatureVector[]{nodeFeature, edgeFeature}, multiKey);
+                if (featureCache != null) {
+                    featureCache.put(sequenceIndex, new FeatureVector[]{nodeFeature, edgeFeature});
                 }
             } else {
                 nodeFeature = allBaseFeatures[0];
