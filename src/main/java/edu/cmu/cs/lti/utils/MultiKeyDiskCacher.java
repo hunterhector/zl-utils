@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A disk-backed cacher based on Guava's {@link com.google.common.cache.LoadingCache}.
@@ -39,6 +40,8 @@ public class MultiKeyDiskCacher<T extends Serializable> {
     private final boolean discardAfter;
 
     private final boolean saveCaches;
+
+    private AtomicInteger writeOutCounter;
 
     /**
      * @param cachePath      The main directory to store the disk based copy of the cache.
@@ -101,8 +104,8 @@ public class MultiKeyDiskCacher<T extends Serializable> {
         };
 
         RemovalListener<List<String>, T> removalListener = notification -> {
+            writeOutCounter.incrementAndGet();
             try {
-                logger.info("On removal ,writing objects out.");
                 writeCacheObject(notification.getValue(), notification.getKey());
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -115,6 +118,8 @@ public class MultiKeyDiskCacher<T extends Serializable> {
                 .build(diskBackedLoader);
 
         this.discardAfter = discardAfter;
+
+        this.writeOutCounter = new AtomicInteger();
     }
 
     /**
@@ -182,6 +187,9 @@ public class MultiKeyDiskCacher<T extends Serializable> {
                 writeCacheObject(entry.getValue(), entry.getKey());
             }
         }
+
+        logger.info(String.format("The Cacher write %d times to the following path [%s]", writeOutCounter.get(),
+                cachingDirectory.getPath()));
     }
 
     /**
