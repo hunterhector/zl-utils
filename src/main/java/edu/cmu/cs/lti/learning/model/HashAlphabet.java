@@ -66,7 +66,7 @@ public class HashAlphabet extends FeatureAlphabet {
         if (storeReadable) {
             TObjectIntMap<String> counter = featureCounters[hashVal];
             if (counter == null) {
-                counter = TCollections.synchronizedMap(new TObjectIntHashMap<>());
+                counter = TCollections.synchronizedMap(new TObjectIntHashMap<String>());
                 featureCounters[hashVal] = counter;
             }
             counter.adjustOrPutValue("[" + feature + "]", 1, 1);

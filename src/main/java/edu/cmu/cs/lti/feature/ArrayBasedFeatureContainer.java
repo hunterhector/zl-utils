@@ -20,7 +20,7 @@ public class ArrayBasedFeatureContainer {
     private int newFeatureIndex = 0;
 
     public ArrayBasedFeatureContainer() {
-        this.featureNameMap = new TObjectIntHashMap<>();
+        this.featureNameMap = new TObjectIntHashMap<String>();
     }
 
     public void addFeatureName(String featureName) {

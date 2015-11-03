@@ -5,6 +5,7 @@ import com.google.common.collect.Table;
 import gnu.trove.iterator.TIntObjectIterator;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
+import java8.util.function.Consumer;
 import org.apache.commons.lang3.SerializationUtils;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
@@ -16,7 +17,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.Serializable;
 import java.util.Iterator;
-import java.util.function.Consumer;
+//import java.util.function.Consumer;
 
 /**
  * Created with IntelliJ IDEA.
@@ -47,7 +48,7 @@ public class GraphWeightVector implements Serializable {
     private boolean useHashBaseWeighVector;
 
     public GraphWeightVector(ClassAlphabet classAlphabet, FeatureAlphabet featureAlphabet, String featureSpec) {
-        nodeWeights = new TIntObjectHashMap<>();
+        nodeWeights = new TIntObjectHashMap<AveragedWeightVector>();
         edgeWeights = HashBasedTable.create();
 
         this.featureAlphabet = featureAlphabet;
@@ -84,7 +85,7 @@ public class GraphWeightVector implements Serializable {
     }
 
     public Iterator<Pair<Integer, AveragedWeightVector>> nodeWeightIterator() {
-        TIntObjectIterator<AveragedWeightVector> iter = nodeWeights.iterator();
+        final TIntObjectIterator<AveragedWeightVector> iter = nodeWeights.iterator();
 
         return new Iterator<Pair<Integer, AveragedWeightVector>>() {
             @Override
@@ -101,7 +102,7 @@ public class GraphWeightVector implements Serializable {
     }
 
     public Iterator<Triplet<Integer, Integer, AveragedWeightVector>> edgeWeightIterator() {
-        Iterator<Table.Cell<Integer, Integer, AveragedWeightVector>> iter = edgeWeights.cellSet().iterator();
+        final Iterator<Table.Cell<Integer, Integer, AveragedWeightVector>> iter = edgeWeights.cellSet().iterator();
 
         return new Iterator<Triplet<Integer, Integer, AveragedWeightVector>>() {
             @Override
@@ -195,12 +196,24 @@ public class GraphWeightVector implements Serializable {
 
     private synchronized void consolidate() {
         logger.info("Consolidating graph weights.");
-        applyToAll(AveragedWeightVector::consolidate);
+//        applyToAll(AveragedWeightVector::consolidate);
+        applyToAll(new Consumer<AveragedWeightVector>() {
+            @Override
+            public void accept(AveragedWeightVector averagedWeightVector) {
+                averagedWeightVector.consolidate();
+            }
+        });
     }
 
     public synchronized void deconsolidate() {
         logger.info("Deconsolidating graph weights.");
-        applyToAll(AveragedWeightVector::deconsolidate);
+//        applyToAll(AveragedWeightVector::deconsolidate);
+        applyToAll(new Consumer<AveragedWeightVector>() {
+            @Override
+            public void accept(AveragedWeightVector averagedWeightVector) {
+                averagedWeightVector.deconsolidate();
+            }
+        });
     }
 
     private void applyToAll(Consumer<AveragedWeightVector> oper) {
@@ -230,7 +243,13 @@ public class GraphWeightVector implements Serializable {
     }
 
     public void updateAverageWeights() {
-        applyToAll(AveragedWeightVector::updateAverageWeight);
+//        applyToAll(AveragedWeightVector::updateAverageWeight);
+        applyToAll(new Consumer<AveragedWeightVector>() {
+            @Override
+            public void accept(AveragedWeightVector averagedWeightVector) {
+                averagedWeightVector.updateAverageWeight();
+            }
+        });
         averageUpdateCount++;
     }
 

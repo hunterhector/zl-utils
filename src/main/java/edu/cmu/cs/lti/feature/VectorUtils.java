@@ -3,6 +3,7 @@ package edu.cmu.cs.lti.feature;
 import gnu.trove.iterator.TObjectDoubleIterator;
 import gnu.trove.map.TObjectDoubleMap;
 import gnu.trove.map.hash.TObjectDoubleHashMap;
+import gnu.trove.procedure.TObjectDoubleProcedure;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -64,7 +65,7 @@ public class VectorUtils {
     }
 
     public static TObjectDoubleMap<String> scalarProduct(TObjectDoubleMap<String> vector, double scalar) {
-        TObjectDoubleMap<String> result = new TObjectDoubleHashMap<>();
+        TObjectDoubleMap<String> result = new TObjectDoubleHashMap<String>();
         for (TObjectDoubleIterator<String> it = vector.iterator(); it.hasNext(); ) {
             it.advance();
             result.put(it.key(), it.value() * scalar);
@@ -83,26 +84,34 @@ public class VectorUtils {
     public static TObjectDoubleMap<String> weightedSum
             (TObjectDoubleMap<String> v1, final TObjectDoubleMap<String> v2,
              final double v1Weight, final double v2Weight) {
-        final TObjectDoubleMap<String> result = new TObjectDoubleHashMap<>();
-        Set<String> usedKey = new HashSet<>();
+        final TObjectDoubleMap<String> result = new TObjectDoubleHashMap<String>();
+        final Set<String> usedKey = new HashSet<String>();
 
-        v1.forEachEntry((a, b) -> {
-            if (v2.containsKey(a)) {
-                double value = b * v1Weight + v2.get(a) * v2Weight;
-                if (value != 0) {
-                    result.put(a, value);
+        v1.forEachEntry(new TObjectDoubleProcedure<String>() {
+            @Override
+            public boolean execute(String a, double b) {
+                if (v2.containsKey(a)) {
+                    double value = b * v1Weight + v2.get(a) * v2Weight;
+                    if (value != 0) {
+                        result.put(a, value);
+                    }
+                    usedKey.add(a);
                 }
-                usedKey.add(a);
+                return true;
             }
-            return true;
         });
 
-        v2.forEachEntry((a, b) -> {
-            if (!usedKey.contains(a)) {
-                result.put(a, b * v2Weight);
-            }
-            return true;
-        });
+        v2.forEachEntry(
+                new TObjectDoubleProcedure<String>() {
+                    @Override
+                    public boolean execute(String a, double b) {
+                        if (!usedKey.contains(a)) {
+                            result.put(a, b * v2Weight);
+                        }
+                        return true;
+                    }
+                }
+        );
         return result;
     }
 

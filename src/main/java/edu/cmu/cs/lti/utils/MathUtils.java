@@ -18,7 +18,7 @@ public class MathUtils {
         }
 
 
-        List<int[]> combs = new ArrayList<>();
+        List<int[]> combs = new ArrayList<int[]>();
 
         boolean found = true;
         while (found) {

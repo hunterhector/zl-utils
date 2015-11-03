@@ -34,8 +34,10 @@ import java.util.Map;
 public class FrameDataReader {
     // The following methods wraps methods to read SemLink data from
     // http://verbs.colorado.edu/semlink/
-    public static Map<Pair<String, String>, Pair<String, String>> getFN2VNRoleMap(String vfMappingPath, boolean inverse) {
-        Map<Pair<String, String>, Pair<String, String>> fn2vn = new HashMap<>();
+    public static Map<Pair<String, String>, Pair<String, String>> getFN2VNRoleMap(String vfMappingPath, boolean
+            inverse) {
+        Map<Pair<String, String>, Pair<String, String>> fn2vn = new HashMap<Pair<String, String>, Pair<String,
+                String>>();
 
         try {
             SAXBuilder builder = new SAXBuilder();
@@ -67,7 +69,9 @@ public class FrameDataReader {
                 }
             }
 
-        } catch (IOException | JDOMException e) {
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (JDOMException e) {
             throw new RuntimeException(e);
         }
 
@@ -78,7 +82,7 @@ public class FrameDataReader {
 
     public static Map<String, String> getFN2VNFrameMap(String vfMappingPath, boolean inverse) {
 
-        Map<String, String> fn2vn = new HashMap<>();
+        Map<String, String> fn2vn = new HashMap<String, String>();
 
         try {
             SAXBuilder builder = new SAXBuilder();
@@ -101,7 +105,9 @@ public class FrameDataReader {
                 }
             }
 
-        } catch (IOException | JDOMException e) {
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (JDOMException e) {
             throw new RuntimeException(e);
         }
 
@@ -109,8 +115,10 @@ public class FrameDataReader {
         return fn2vn;
     }
 
-    public static Map<Pair<String, String>, Pair<String, String>> getVN2PBRoleMap(String vpMappingPath, boolean inverse) {
-        Map<Pair<String, String>, Pair<String, String>> vn2pb = new HashMap<>();
+    public static Map<Pair<String, String>, Pair<String, String>> getVN2PBRoleMap(String vpMappingPath, boolean
+            inverse) {
+        Map<Pair<String, String>, Pair<String, String>> vn2pb = new HashMap<Pair<String, String>, Pair<String,
+                String>>();
 
         try {
             SAXBuilder builder = new SAXBuilder();
@@ -131,16 +139,20 @@ public class FrameDataReader {
                         String pbArg = role.getAttributeValue("pb-arg");
                         String vnRole = role.getAttributeValue("vn-theta");
                         if (inverse) {
-                            vn2pb.put(new Pair<>(pbRoleset, pbArg), new Pair<>(vnClass, vnRole));
+                            vn2pb.put(new Pair<String, String>(pbRoleset, pbArg),
+                                    new Pair<String, String>(vnClass, vnRole));
                         } else {
-                            vn2pb.put(new Pair<>(vnClass, vnRole), new Pair<>(pbRoleset, pbArg));
+                            vn2pb.put(new Pair<String, String>(vnClass, vnRole),
+                                    new Pair<String, String>(pbRoleset, pbArg));
                         }
                     }
 
                 }
             }
 
-        } catch (IOException | JDOMException e) {
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JDOMException e) {
             e.printStackTrace();
         }
 
@@ -150,7 +162,7 @@ public class FrameDataReader {
     }
 
     public static Map<String, String> getVN2PBFrameMap(String vpMappingPath, boolean inverse) {
-        Map<String, String> vn2pb = new HashMap<>();
+        Map<String, String> vn2pb = new HashMap<String, String>();
 
         try {
             SAXBuilder builder = new SAXBuilder();
@@ -175,7 +187,9 @@ public class FrameDataReader {
                 }
             }
 
-        } catch (IOException | JDOMException e) {
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JDOMException e) {
             e.printStackTrace();
         }
 
@@ -186,7 +200,8 @@ public class FrameDataReader {
     public static Map<String, Table<String, String, Map<String, String>>> getFrameRelations(
             String fnRelatonPath) {
 
-        Map<String, Table<String, String, Map<String, String>>> frameRelationMappings = new HashMap<String, Table<String, String, Map<String, String>>>();
+        Map<String, Table<String, String, Map<String, String>>> frameRelationMappings = new HashMap<String,
+                Table<String, String, Map<String, String>>>();
         int typeCounter = 0;
         int frameRelationCounter = 0;
         int feRelationCounter = 0;
@@ -235,7 +250,9 @@ public class FrameDataReader {
 
                 frameRelationMappings.put(relationType, subFrame2SuperFrameMapping);
             }
-        } catch (IOException | JDOMException e) {
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JDOMException e) {
             e.printStackTrace();
         }
 
@@ -246,7 +263,8 @@ public class FrameDataReader {
         return frameRelationMappings;
     }
 
-    public static String getFrameFromPropBankSense(String propBankSense, Map<String, String> pb2Vn, Map<String, String> vn2Fn) {
+    public static String getFrameFromPropBankSense(String propBankSense, Map<String, String> pb2Vn, Map<String,
+            String> vn2Fn) {
         if (propBankSense == null) {
             return null;
         }
@@ -257,7 +275,8 @@ public class FrameDataReader {
         return null;
     }
 
-    public static ArrayListMultimap<String, String> getFrame2Lexicon(String frameDirPath) throws IOException, ParserConfigurationException, SAXException {
+    public static ArrayListMultimap<String, String> getFrame2Lexicon(String frameDirPath) throws IOException,
+            ParserConfigurationException, SAXException {
         String[] frameDataExtensions = {"xml"};
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
@@ -289,7 +308,8 @@ public class FrameDataReader {
         return frame2PostaggedLemma;
     }
 
-    public static ArrayListMultimap<String, String> getLexicon2Frame(String frameDirPath) throws IOException, ParserConfigurationException, SAXException {
+    public static ArrayListMultimap<String, String> getLexicon2Frame(String frameDirPath) throws IOException,
+            ParserConfigurationException, SAXException {
         String[] frameDataExtensions = {"xml"};
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
@@ -326,7 +346,8 @@ public class FrameDataReader {
         ArrayListMultimap<String, String> frameLexicon =
                 getFrame2Lexicon("/Users/zhengzhongliu/Documents/projects/cmu-script/data/resources/fndata-1.5/frame");
         for (Map.Entry<String, Collection<String>> frameLexiconEntry : frameLexicon.asMap().entrySet()) {
-            System.out.println(String.format("Frame %s, lexical items: %s", frameLexiconEntry.getKey(), frameLexiconEntry.getValue()));
+            System.out.println(String.format("Frame %s, lexical items: %s", frameLexiconEntry.getKey(),
+                    frameLexiconEntry.getValue()));
         }
     }
 

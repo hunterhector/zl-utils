@@ -4,6 +4,9 @@ import edu.mit.jwi.Dictionary;
 import edu.mit.jwi.IDictionary;
 import edu.mit.jwi.item.*;
 import edu.mit.jwi.morph.WordnetStemmer;
+import java8.util.function.Function;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 import org.javatuples.Pair;
 
 import java.io.IOException;
@@ -13,7 +16,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Created with IntelliJ IDEA.
@@ -53,7 +55,7 @@ public class WordNetSearcher {
 
 
     public Set<Pair<String, String>> getDerivations(String lemma, POS pos) {
-        Set<Pair<String, String>> derivationWords = new HashSet<>();
+        Set<Pair<String, String>> derivationWords = new HashSet<Pair<String, String>>();
 
         for (ISynset synset : getAllSynsets(lemma, pos)) {
             for (IWord iWord : synset.getWords()) {
@@ -78,23 +80,33 @@ public class WordNetSearcher {
     public List<String> getAllSynonyms(String wordType, POS pos) {
         IIndexWord idxWord = dict.getIndexWord(wordType, pos);
 
-        Set<String> synonyms = new HashSet<>();
+        Set<String> synonyms = new HashSet<String>();
 
         if (idxWord != null) {
             for (IWordID wordId : idxWord.getWordIDs()) {
                 IWord word = dict.getWord(wordId);
-                synonyms.addAll(word.getSynset().getWords().stream().map(IWord::getLemma).collect(Collectors.toList()));
+//                synonyms.addAll(word.getSynset().getWords().stream().map(IWord::getLemma).collect(Collectors.toList
+// ()));
+                synonyms.addAll(
+                        StreamSupport.stream(word.getSynset().getWords()).map(new Function<IWord,
+                                String>() {
+                            @Override
+                            public String apply(IWord iWord) {
+                                return iWord.getLemma();
+                            }
+                        }).collect(Collectors.<String>toList())
+                );
             }
         }
-        return new ArrayList<>(synonyms);
+        return new ArrayList<String>(synonyms);
     }
 
     public List<ISynsetID> getAllHypernyms(ISynset synset) {
-        return getAllHypernyms(synset, new HashSet<>());
+        return getAllHypernyms(synset, new HashSet<ISynset>());
     }
 
     public List<ISynsetID> getAllHypernyms(ISynset synset, Set<ISynset> alreadyVisited) {
-        List<ISynsetID> allHyperNyms = new ArrayList<>();
+        List<ISynsetID> allHyperNyms = new ArrayList<ISynsetID>();
 
         List<ISynsetID> thisHypers = synset.getRelatedSynsets(Pointer.HYPERNYM);
         alreadyVisited.add(synset);
@@ -121,7 +133,7 @@ public class WordNetSearcher {
     }
 
     public Set<String> getAllHypernymsForAllSense(String wordType, POS pos) {
-        Set<String> allHyperNyms = new HashSet<>();
+        Set<String> allHyperNyms = new HashSet<String>();
 
         for (ISynset synset : getAllSynsets(wordType, pos)) {
             for (ISynsetID hyperSynsetId : getAllHypernyms(synset)) {
@@ -138,7 +150,7 @@ public class WordNetSearcher {
     }
 
     public List<ISynset> getAllSynsets(String wordType, POS pos) {
-        List<ISynset> synsets = new ArrayList<>();
+        List<ISynset> synsets = new ArrayList<ISynset>();
         IIndexWord idxWord = dict.getIndexWord(wordType, pos);
         if (idxWord != null) {
             for (IWordID wordId : idxWord.getWordIDs()) {

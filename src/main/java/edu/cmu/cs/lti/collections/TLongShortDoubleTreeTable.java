@@ -23,7 +23,7 @@ import java.util.TreeMap;
  */
 public class TLongShortDoubleTreeTable implements Serializable {
     private static final long serialVersionUID = 6390995626236546140L;
-    TLongObjectHashMap<TreeMap<Short, MutableDouble>> table = new TLongObjectHashMap<>();
+    TLongObjectHashMap<TreeMap<Short, MutableDouble>> table = new TLongObjectHashMap<TreeMap<Short, MutableDouble>>();
 
 
     public TLongShortDoubleTreeTable() {
@@ -74,7 +74,7 @@ public class TLongShortDoubleTreeTable implements Serializable {
         if (row != null) {
             row.put(colKey, mutableVal);
         } else {
-            row = new TreeMap<>();
+            row = new TreeMap<Short, MutableDouble>();
             row.put(colKey, mutableVal);
             table.put(rowKey, row);
         }
@@ -113,7 +113,7 @@ public class TLongShortDoubleTreeTable implements Serializable {
             TreeMap<Short, MutableDouble> row = table.get(rowKey);
             newValue = adjustOrPutValueToRow(row, colKey, adjustAmount, putAmount);
         } else {
-            TreeMap<Short, MutableDouble> row = new TreeMap<>();
+            TreeMap<Short, MutableDouble> row = new TreeMap<Short, MutableDouble>();
             row.put(colKey, new MutableDouble(putAmount));
             newValue = putAmount;
             table.put(rowKey, row);
@@ -193,7 +193,7 @@ public class TLongShortDoubleTreeTable implements Serializable {
                     adjustOrPutValueToRow(weightsRow, secondLevelIter.key(), -secondLevelIter.value(), secondLevelIter.value() * mul);
                 }
             } else {
-                TreeMap<Short, MutableDouble> newRow = new TreeMap<>();
+                TreeMap<Short, MutableDouble> newRow = new TreeMap<Short, MutableDouble>();
                 table.put(featureRowKey, newRow);
                 for (TShortDoubleIterator secondLevelIter = firstLevelIter.value().iterator(); secondLevelIter.hasNext(); ) {
                     secondLevelIter.advance();
@@ -213,7 +213,7 @@ public class TLongShortDoubleTreeTable implements Serializable {
                     adjustOrPutValueToRow(weightsRow, cellEntry.getKey(), -cellEntry.getValue().get(), -cellEntry.getValue().get() * mul);
                 }
             } else {
-                TreeMap<Short, MutableDouble> newRow = new TreeMap<>();
+                TreeMap<Short, MutableDouble> newRow = new TreeMap<Short, MutableDouble>();
                 table.put(featureRowKey, newRow);
                 for (Map.Entry<Short, MutableDouble> cellEntry : firstLevelIter.value().entrySet()) {
                     adjustOrPutValueToRow(newRow, cellEntry.getKey(), -cellEntry.getValue().get(), -cellEntry.getValue().get() * mul);

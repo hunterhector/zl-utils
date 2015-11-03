@@ -20,7 +20,7 @@ public class BidirectionalValueSortedMap<K extends Comparable<K>, V extends Comp
     public BidirectionalValueSortedMap() {
         valueLookUp = TreeMultimap.create();
         valueLookUp.size();
-        primaryMap = new HashMap<>();
+        primaryMap = new HashMap<K, V>();
     }
 
     public java.util.NavigableSet<K> getKey(V val) {
@@ -122,7 +122,7 @@ public class BidirectionalValueSortedMap<K extends Comparable<K>, V extends Comp
     }
 
     public static void main(String[] args) {
-        BidirectionalValueSortedMap<String, Double> map = new BidirectionalValueSortedMap<>();
+        BidirectionalValueSortedMap<String, Double> map = new BidirectionalValueSortedMap<String, Double>();
 
         map.put("a", 5.0);
         map.put("b", 1.0);

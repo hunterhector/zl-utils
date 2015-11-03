@@ -2,13 +2,11 @@ package edu.cmu.cs.lti.learning.decoding;
 
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.training.SequenceDecoder;
-import edu.cmu.cs.lti.utils.Functional;
 import gnu.trove.map.TIntObjectMap;
+import java8.util.function.IntConsumer;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.function.BiFunction;
 
 /**
  * Created with IntelliJ IDEA.
@@ -53,19 +51,19 @@ public class ViterbiDecoder extends SequenceDecoder {
     }
 
     @Override
-    public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int sequenceLength,
-                       double lagrangian, TIntObjectMap<FeatureVector[]> featureCache, boolean useAverage) {
+    public void decode(ChainFeatureExtractor extractor, final GraphWeightVector weightVector, int sequenceLength,
+                       double lagrangian, TIntObjectMap<FeatureVector[]> featureCache, final boolean useAverage) {
         solution = new SequenceSolution(classAlphabet, sequenceLength, kBest);
 
         // Dot product function on the node (i.e. only take features depend on current class)
-        BiFunction<FeatureVector, Integer, Double> nodeDotProd = useAverage ?
-                weightVector::dotProdAver :
-                weightVector::dotProd;
-
-        // Dot product function on the edge (i.e. take features depend on two classes)
-        Functional.TriFunction<FeatureVector, Integer, Integer, Double> edgeDotProd = useAverage ?
-                weightVector::dotProdAver :
-                weightVector::dotProd;
+//        BiFunction<FeatureVector, Integer, Double> nodeDotProd = useAverage ?
+//                weightVector::dotProdAver :
+//                weightVector::dotProd;
+//
+//        // Dot product function on the edge (i.e. take features depend on two classes)
+//        Functional.TriFunction<FeatureVector, Integer, Integer, Double> edgeDotProd = useAverage ?
+//                weightVector::dotProdAver :
+//                weightVector::dotProd;
 
         final GraphFeatureVector[] currentFeatureVectors = new GraphFeatureVector[classAlphabet.size()];
         final GraphFeatureVector[] previousColFeatureVectors = new GraphFeatureVector[classAlphabet.size()];
@@ -81,8 +79,8 @@ public class ViterbiDecoder extends SequenceDecoder {
             }
 
             // Feature vector to be extracted or loaded from cache.
-            FeatureVector nodeFeature;
-            FeatureVector edgeFeature;
+            final FeatureVector nodeFeature;
+            final FeatureVector edgeFeature;
 
             FeatureVector[] allBaseFeatures = null;
             if (featureCache != null) {
@@ -111,41 +109,51 @@ public class ViterbiDecoder extends SequenceDecoder {
 
             // Fill up lattice score for each of class in the current column.
             // TODO currently this creates a IllegalThreadState, some threads didn't exits.
-            solution.getCurrentPossibleClassIndices().parallel().forEach(classIndex -> {
-                double newNodeScore = nodeDotProd.apply(nodeFeature, classIndex);
-                MutableInt argmaxPreviousState = new MutableInt(-1);
+            solution.getCurrentPossibleClassIndices().parallel().forEach(new IntConsumer() {
+                @Override
+                public void accept(final int classIndex) {
+                    final double newNodeScore = useAverage ? weightVector.dotProdAver(nodeFeature, classIndex) :
+                            weightVector.dotProd(nodeFeature, classIndex);
+                    final MutableInt argmaxPreviousState = new MutableInt(-1);
 
-                // Check which previous state gives the best score.
-                solution.getPreviousPossibleClassIndices().forEach(prevState -> {
-                    for (SequenceSolution.LatticeCell previousBest : solution.getPreviousBests(prevState)) {
-                        double newEdgeScore = 0;
-                        if (classIndex == prevState) {
-                            newEdgeScore = edgeDotProd.apply(edgeFeature, classIndex, prevState);
-                        }
+                    // Check which previous state gives the best score.
+                    solution.getPreviousPossibleClassIndices().forEach(new IntConsumer() {
+                        @Override
+                        public void accept(int prevState) {
+                            for (SequenceSolution.LatticeCell previousBest : solution.getPreviousBests(prevState)) {
+                                double newEdgeScore = 0;
+                                if (classIndex == prevState) {
+                                    newEdgeScore = useAverage ?
+                                            weightVector.dotProdAver(edgeFeature, classIndex, prevState)
+                                            : weightVector.dotProd(edgeFeature, classIndex, prevState);
+                                }
 
-                        int addResult = solution.scoreNewEdge(classIndex, previousBest, newEdgeScore, newNodeScore);
-                        if (addResult == 1) {
-                            // The new score is the best.
-                            argmaxPreviousState.setValue(prevState);
-                        } else if (addResult == -1) {
-                            // The new score is worse than the worst, i.e. rejected by the heap. We don't
-                            // need to check any scores that is worse than this.
-                            break;
+                                int addResult = solution.scoreNewEdge(classIndex, previousBest, newEdgeScore,
+                                        newNodeScore);
+                                if (addResult == 1) {
+                                    // The new score is the best.
+                                    argmaxPreviousState.setValue(prevState);
+                                } else if (addResult == -1) {
+                                    // The new score is worse than the worst, i.e. rejected by the heap. We don't
+                                    // need to check any scores that is worse than this.
+                                    break;
+                                }
+                            }
                         }
+                    });
+
+                    // Add feature vector from previous state, also added new features of current state.
+                    int bestPrev = argmaxPreviousState.getValue();
+
+                    // Adding features for the new cell.
+                    currentFeatureVectors[classIndex].extend(nodeFeature, classIndex);
+                    // Taking features from previous best cell.
+                    currentFeatureVectors[classIndex].extend(previousColFeatureVectors[bestPrev]);
+                    // Adding features for the edge.
+                    if (bestPrev == classIndex) {
+                        // Note: additional condition that we are only interested in case where previous is the same.
+                        currentFeatureVectors[classIndex].extend(edgeFeature, classIndex, bestPrev);
                     }
-                });
-
-                // Add feature vector from previous state, also added new features of current state.
-                int bestPrev = argmaxPreviousState.getValue();
-
-                // Adding features for the new cell.
-                currentFeatureVectors[classIndex].extend(nodeFeature, classIndex);
-                // Taking features from previous best cell.
-                currentFeatureVectors[classIndex].extend(previousColFeatureVectors[bestPrev]);
-                // Adding features for the edge.
-                if (bestPrev == classIndex) {
-                    // Note: additional condition that we are only interested in case where previous is the same.
-                    currentFeatureVectors[classIndex].extend(edgeFeature, classIndex, bestPrev);
                 }
             });
         }

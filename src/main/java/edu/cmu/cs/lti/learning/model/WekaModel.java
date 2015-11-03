@@ -65,7 +65,7 @@ public class WekaModel implements Serializable {
         emptyVector = new double[featureConfiguration.size()];
 
         // Arbitrarily get one of the classifiers as default.
-        defaulClassifier = new ArrayList<>(classifiers.keySet()).get(0);
+        defaulClassifier = new ArrayList<String>(classifiers.keySet()).get(0);
     }
 
     public void write(File modelDir) throws Exception {

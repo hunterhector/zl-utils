@@ -12,9 +12,9 @@ import java.util.*;
  */
 public class CollectionUtils {
     public static <T> List<Pair<T, T>> nSkippedBigrams(Collection<T> collection, int n) {
-        List<Pair<T, T>> resultBigrams = new ArrayList<>();
+        List<Pair<T, T>> resultBigrams = new ArrayList<Pair<T, T>>();
 
-        List<Iterator<T>> followerIters = new LinkedList<>();
+        List<Iterator<T>> followerIters = new LinkedList<Iterator<T>>();
 
         for (T second : collection) {
             for (Iterator<T> followerIter : followerIters) {

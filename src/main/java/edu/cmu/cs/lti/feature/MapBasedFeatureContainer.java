@@ -44,7 +44,7 @@ public class MapBasedFeatureContainer implements Serializable {
     public static final int DEFAULT_NO_FEATURE_INDEX = -1;
 
     public MapBasedFeatureContainer() {
-        this.featureNameMap = new TObjectIntHashMap<>();
+        this.featureNameMap = new TObjectIntHashMap<String>();
         this.latestWeights = new TIntDoubleHashMap();
         this.totalWeights = new TIntDoubleHashMap();
         this.lastUpdateTimes = new TIntIntHashMap();
@@ -52,7 +52,7 @@ public class MapBasedFeatureContainer implements Serializable {
     }
 
     public void update(TObjectDoubleMap<String> realFeatures, TObjectDoubleMap<String> wrongFeatures, double updateStep) {
-        TObjectDoubleMap<String> jointFeatures = new TObjectDoubleHashMap<>();
+        TObjectDoubleMap<String> jointFeatures = new TObjectDoubleHashMap<String>();
         jointFeatures.putAll(realFeatures);
         for (TObjectDoubleIterator<String> featureIter = wrongFeatures.iterator(); featureIter.hasNext(); ) {
             featureIter.advance();

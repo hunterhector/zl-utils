@@ -23,7 +23,7 @@ public class RealValueLazyListFeatureVector extends FeatureVector {
 
     public RealValueLazyListFeatureVector(FeatureAlphabet alphabet) {
         super(alphabet);
-        fv = new ArrayList<>();
+        fv = new ArrayList<Pair<Integer, Double>>();
     }
 
     @Override
@@ -44,7 +44,7 @@ public class RealValueLazyListFeatureVector extends FeatureVector {
     @Override
     public FeatureIterator featureIterator() {
 
-        Iterator<Pair<Integer, Double>> iter = fv.iterator();
+        final Iterator<Pair<Integer, Double>> iter = fv.iterator();
 
         return new FeatureIterator() {
             Pair<Integer, Double> current = null;

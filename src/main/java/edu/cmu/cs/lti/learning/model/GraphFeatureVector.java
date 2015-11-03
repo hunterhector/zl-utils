@@ -36,7 +36,7 @@ public class GraphFeatureVector implements Serializable {
     }
 
     public GraphFeatureVector(ClassAlphabet classAlphabet, FeatureAlphabet featureAlphabet, boolean isBinary) {
-        nodeFv = new TIntObjectHashMap<>();
+        nodeFv = new TIntObjectHashMap<FeatureVector>();
         edgeFv = HashBasedTable.create();
         this.featureAlphabet = featureAlphabet;
         this.classAlphabet = classAlphabet;

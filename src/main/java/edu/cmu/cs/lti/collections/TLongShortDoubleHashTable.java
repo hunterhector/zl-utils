@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public class TLongShortDoubleHashTable implements Serializable {
     private static final long serialVersionUID = 6390995626236546140L;
-    TLongObjectHashMap<TShortDoubleMap> table = new TLongObjectHashMap<>();
+    TLongObjectHashMap<TShortDoubleMap> table = new TLongObjectHashMap<TShortDoubleMap>();
 
     public TLongShortDoubleHashTable() {
 

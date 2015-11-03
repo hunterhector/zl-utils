@@ -2,6 +2,8 @@ package edu.cmu.cs.lti.learning.model;
 
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
+import java8.util.stream.IntStream;
+import java8.util.stream.IntStreams;
 import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.File;
@@ -10,7 +12,6 @@ import java.io.FileOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 
 /**
  * A synchronized implementation that holds class information (what are the possible output of a classification tasks).
@@ -24,7 +25,7 @@ public class ClassAlphabet implements Serializable {
 
     public static final String outsideClass = "OUTSIDE";
 
-    private TObjectIntMap<String> classIndices = new TObjectIntHashMap<>();
+    private TObjectIntMap<String> classIndices = new TObjectIntHashMap<String>();
     private ArrayList<String> classes;
     private ArrayList<List<String>> backoffClassNames;
     private int index; // currently we synchronize the only accesser of it.
@@ -42,8 +43,8 @@ public class ClassAlphabet implements Serializable {
     }
 
     public ClassAlphabet(String[] classes, boolean noneOfTheAbove, boolean withOutsideClass) {
-        this.classes = new ArrayList<>();
-        this.backoffClassNames = new ArrayList<>();
+        this.classes = new ArrayList<String>();
+        this.backoffClassNames = new ArrayList<List<String>>();
         index = 0;
 
         if (withOutsideClass) {
@@ -79,7 +80,7 @@ public class ClassAlphabet implements Serializable {
      * Split class names into subclass names. The full class name might be a concatenation of multiple classes and
      * might contain hierarchy. The concatenation is represented by ";" and the hierarchy is represented as "_".
      * This method will split a class name of "A_B;C_D" in the following:
-     * <p>
+     * <p/>
      * A_B;C_D The full class name itself
      * A_B  The individual class name
      * C_D  The individual class name
@@ -91,7 +92,7 @@ public class ClassAlphabet implements Serializable {
      */
     private List<String> splitAsClassNames(String fullClassName) {
         // Add multiple class features by decompose the class.
-        List<String> classNames = new ArrayList<>();
+        List<String> classNames = new ArrayList<String>();
 
         String[] individualClassNames = fullClassName.split(" ; ");
         if (individualClassNames.length > 1) {
@@ -138,11 +139,15 @@ public class ClassAlphabet implements Serializable {
     }
 
     public synchronized IntStream getNormalClassesRange() {
-        return IntStream.range(1, classes.size());
+        return IntStreams.range(1, classes.size());
+        // Replacing the native java8 with stream support.
+//        return IntStream.range(1, classes.size());
     }
 
     public IntStream getOutsideClassRange() {
-        return IntStream.range(0, 1);
+        return IntStreams.range(0, 1);
+        // Replacing the native java8 with stream support.
+//        return IntStream.range(0, 1);
     }
 
     public void write(File outputFile) throws FileNotFoundException {

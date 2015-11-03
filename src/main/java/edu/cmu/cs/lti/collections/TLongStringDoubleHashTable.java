@@ -11,7 +11,7 @@ import gnu.trove.map.hash.TObjectDoubleHashMap;
  * Time: 3:49 PM
  */
 public class TLongStringDoubleHashTable {
-    TLongObjectHashMap<TObjectDoubleMap<String>> table = new TLongObjectHashMap<>();
+    TLongObjectHashMap<TObjectDoubleMap<String>> table = new TLongObjectHashMap<TObjectDoubleMap<String>>();
 
     public TLongStringDoubleHashTable() {
 
@@ -41,7 +41,7 @@ public class TLongStringDoubleHashTable {
         if (row != null) {
             row.put(colKey, value);
         } else {
-            row = new TObjectDoubleHashMap<>();
+            row = new TObjectDoubleHashMap<String>();
             row.put(colKey, value);
             table.put(rowKey, row);
         }
@@ -74,7 +74,7 @@ public class TLongStringDoubleHashTable {
         if (table.containsKey(rowKey)) {
             newValue = table.get(rowKey).adjustOrPutValue(colKey, adjustAmount, putAmount);
         } else {
-            TObjectDoubleMap<String> row = new TObjectDoubleHashMap<>();
+            TObjectDoubleMap<String> row = new TObjectDoubleHashMap<String>();
             row.put(colKey, putAmount);
             newValue = putAmount;
             table.put(rowKey, row);

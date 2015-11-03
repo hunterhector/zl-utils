@@ -40,7 +40,7 @@ public class RealValueHashFeatureVector extends FeatureVector {
 
     @Override
     public FeatureIterator featureIterator() {
-        TIntDoubleIterator iter = fv.iterator();
+        final TIntDoubleIterator iter = fv.iterator();
         return new FeatureIterator() {
             @Override
             public int featureIndex() {

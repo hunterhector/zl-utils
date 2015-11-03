@@ -11,7 +11,7 @@ import gnu.trove.map.hash.TLongObjectHashMap;
  * Time: 3:49 PM
  */
 public class TLongByteDoubleHashTable {
-    TLongObjectHashMap<TByteDoubleMap> table = new TLongObjectHashMap<>();
+    TLongObjectHashMap<TByteDoubleMap> table = new TLongObjectHashMap<TByteDoubleMap>();
 
     public TLongByteDoubleHashTable() {
 

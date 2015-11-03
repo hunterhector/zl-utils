@@ -39,7 +39,7 @@ public class BinaryHashFeatureVector extends FeatureVector {
 
     @Override
     public FeatureIterator featureIterator() {
-        TIntIntIterator iter = fv.iterator();
+        final TIntIntIterator iter = fv.iterator();
         return new FeatureIterator() {
             @Override
             public int featureIndex() {

@@ -17,14 +17,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A disk-backed cacher based on Guava's {@link com.google.common.cache.LoadingCache}.
- * <p>
+ * <p/>
  * Each key is a list of strings, which jointly identify the object (you can also use one string). Values are any
  * valid objects. Cache objects are discarded based on the weigher (how much a key, value pair weight). When the
  * object is discarded, it will be written to the cache directory, the keys will form the subfolder hierarchy.
- * <p>
+ * <p/>
  * Cache lookup will be two level, first level is the in memory lookup, then disk lookup. Null value will be return
  * if the result is not found. Users are responsible to insert key, value pair into the cache.
- * <p>
+ * <p/>
  * Upon close, the cacher will decide whether to write down all caches to disk or discard the whole cache (including
  * the directory) entirely based on discardAfter flag during construction.
  *
@@ -103,12 +103,15 @@ public class MultiKeyDiskCacher<T extends Serializable> {
             }
         };
 
-        RemovalListener<List<String>, T> removalListener = notification -> {
-            writeOutCounter.incrementAndGet();
-            try {
-                writeCacheObject(notification.getValue(), notification.getKey());
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
+        RemovalListener<List<String>, T> removalListener = new RemovalListener<List<String>, T>() {
+            @Override
+            public void onRemoval(RemovalNotification<List<String>, T> notification) {
+                writeOutCounter.incrementAndGet();
+                try {
+                    writeCacheObject(notification.getValue(), notification.getKey());
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
             }
         };
 
@@ -200,8 +203,14 @@ public class MultiKeyDiskCacher<T extends Serializable> {
      * @throws CacheException
      */
     public static void main(String[] argv) throws IOException, CacheException {
-        MultiKeyDiskCacher<String> testCacher = new MultiKeyDiskCacher<>("data/temp",
-                (k, v) -> 1, 10, false);
+        MultiKeyDiskCacher<String> testCacher = new MultiKeyDiskCacher<String>("data/temp",
+                new Weigher<List<String>, String>() {
+                    @Override
+                    public int weigh(List<String> strings, String s) {
+                        return 1;
+                    }
+                }, 10, false);
+
         String value = testCacher.get("k1");
         if (value == null) {
             testCacher.addWithMultiKey("v1", "k1");

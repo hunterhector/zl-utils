@@ -1,6 +1,11 @@
 package edu.cmu.cs.lti.learning.model;
 
 import com.google.common.collect.MinMaxPriorityQueue;
+import java8.util.function.IntConsumer;
+import java8.util.function.IntFunction;
+import java8.util.stream.Collectors;
+import java8.util.stream.IntStream;
+import java8.util.stream.IntStreams;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -8,8 +13,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+
+//import java.util.stream.Collectors;
+//import java.util.ArrayList;
+//import java.util.function.IntFunction;
+//import java.util.stream.IntStream;
 
 /**
  * Created with IntelliJ IDEA.
@@ -171,18 +179,24 @@ public class SequenceSolution extends Solution {
     public void advance() {
         // Store all temporary back pointers from the heap to a list for further access.
         if (currentPosition >= 0) {
-            getPossibleClassIndices(currentPosition).forEach(classIndex -> {
-                MinMaxPriorityQueue<LatticeCell> tempBackPointer = temporaryCells[classIndex];
-                if (tempBackPointer == null) {
-                    throw new IllegalStateException(String.format("Temp pointers are not updated before call, cannot " +
-                            "find cell at position %d, class %d", currentPosition - 1, classIndex));
-                }
-                latticeCells[currentPosition][classIndex] = new ArrayList<>();
-                while (!tempBackPointer.isEmpty()) {
-                    latticeCells[currentPosition][classIndex].add(tempBackPointer.poll());
+            getPossibleClassIndices(currentPosition).forEach(
+                    new IntConsumer() {
+                        @Override
+                        public void accept(int classIndex) {
+                            MinMaxPriorityQueue<LatticeCell> tempBackPointer = temporaryCells[classIndex];
+                            if (tempBackPointer == null) {
+                                throw new IllegalStateException(String.format(
+                                        "Temp pointers are not updated before call, cannot find cell at position %d, " +
+                                                "class %d", currentPosition - 1, classIndex));
+                            }
+                            latticeCells[currentPosition][classIndex] = new ArrayList<LatticeCell>();
+                            while (!tempBackPointer.isEmpty()) {
+                                latticeCells[currentPosition][classIndex].add(tempBackPointer.poll());
 //                System.out.println("Lattice cell at " + currentPosition + " " + classIndex + " updated.");
-                }
-            });
+                            }
+                        }
+                    }
+            );
         }
 
         ++currentPosition;
@@ -319,9 +333,19 @@ public class SequenceSolution extends Solution {
      * @return The string representation of the best solution.
      */
     public String toString() {
-        int[] bestSolution = solution[0];
-        return IntStream.range(0, bestSolution.length).mapToObj(solutionIndex -> solutionIndex + ":" + classAlphabet
-                .getClassName(bestSolution[solutionIndex])).collect(Collectors.joining(", "));
+        final int[] bestSolution = solution[0];
+        return IntStreams.range(0, bestSolution.length).mapToObj(
+                new IntFunction<String>() {
+                    @Override
+                    public String apply(int solutionIndex) {
+                        return solutionIndex + ":" + classAlphabet.getClassName(bestSolution[solutionIndex]);
+                    }
+                }
+        ).collect(Collectors.joining(", "));
+
+        // Replacing native java8 with streamsupport.
+//        return IntStream.range(0, bestSolution.length).mapToObj(solutionIndex -> solutionIndex + ":" + classAlphabet
+//                .getClassName(bestSolution[solutionIndex])).collect(Collectors.joining(", "));
     }
 
     public ClassAlphabet getClassAlphabet() {

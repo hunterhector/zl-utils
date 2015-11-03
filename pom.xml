@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>edu.cmu.cs.lti</groupId>
     <artifactId>zl-utils</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.2-j1.6</version>
 
     <build>
         <pluginManagement>
@@ -14,8 +14,8 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
-                        <source>1.8</source>
-                        <target>1.8</target>
+                        <source>1.6</source>
+                        <target>1.6</target>
                     </configuration>
                 </plugin>
             </plugins>
@@ -85,5 +85,13 @@
             <artifactId>string-similarity</artifactId>
             <version>1.0.0</version>
         </dependency>
+
+        <!-- Stream support for java under v1.8 -->
+        <dependency>
+            <groupId>net.sourceforge.streamsupport</groupId>
+            <artifactId>streamsupport</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+
     </dependencies>
 </project>

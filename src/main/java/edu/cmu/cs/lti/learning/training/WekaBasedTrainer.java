@@ -50,14 +50,14 @@ public abstract class WekaBasedTrainer {
                                         ClassAlphabet classAlphabet);
 
     private void configFeatures(TObjectIntMap<String> featureNameMap, ClassAlphabet classAlphabet) throws Exception {
-        featureConfiguration = new ArrayList<>();
+        featureConfiguration = new ArrayList<Attribute>();
         declareFeatures(featureNameMap, featureConfiguration);
         declareClass(classAlphabet, featureConfiguration);
         logger.info("Number of features : " + featureNameMap.size() + ". Number of classes : " + classAlphabet.size());
     }
 
     private void declareClass(ClassAlphabet classAlphabet, List<Attribute> featureVector) {
-        List<String> fixedClasses = new ArrayList<>();
+        List<String> fixedClasses = new ArrayList<String>();
         for (int i = 0; i < classAlphabet.size(); i++) {
             fixedClasses.add(classAlphabet.getClassName(i));
         }
@@ -120,8 +120,8 @@ public abstract class WekaBasedTrainer {
     }
 
     public void buildModels(String modelOutputDir) throws Exception {
-        List<Pair<TIntDoubleMap, String>> rawInstances = new ArrayList<>();
-        TObjectIntMap<String> featureNameMap = new TObjectIntHashMap<>();
+        List<Pair<TIntDoubleMap, String>> rawInstances = new ArrayList<Pair<TIntDoubleMap, String>>();
+        TObjectIntMap<String> featureNameMap = new TObjectIntHashMap<String>();
         ClassAlphabet classAlphabet = new ClassAlphabet();
         //a bug related to the sparse vector of WEKA
         classAlphabet.addClass(DUMMY_CLASS_NAME);
