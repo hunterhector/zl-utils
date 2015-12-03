@@ -49,6 +49,14 @@ public class AveragePerceptronTrainer {
             GraphFeatureVector bestDecodingFeatures = decoder.getBestDecodingFeatures();
             updateWeights(goldFv, bestDecodingFeatures);
         }
+
+//        logger.debug("Prediction");
+//        logger.debug(prediction.toString());
+//        logger.debug("Gold");
+//        logger.debug(goldSolution.toString());
+//        logger.debug("Loss is " + loss);
+//        DebugUtils.pause();
+
         return loss;
     }
 
@@ -57,6 +65,8 @@ public class AveragePerceptronTrainer {
         weightVector.updateWeightsBy(predictedFv, -stepSize);
 
         weightVector.updateAverageWeights();
+
+//        logger.info(goldFv.readableNodeVector());
     }
 
     public void write(File outputFile) throws FileNotFoundException {

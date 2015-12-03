@@ -24,8 +24,6 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     private GraphFeatureVector bestVector;
 
-//    private MultiStringDiskBackedCacher<FeatureVector[]> featureCacher;
-
     private int kBest;
 
     public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet) {
@@ -166,8 +164,6 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     @Override
     public GraphFeatureVector getSolutionFeatures(ChainFeatureExtractor extractor, SequenceSolution solution) {
-//        logger.info("Extracting solution features from data");
-
         GraphFeatureVector fv = newGraphFeatureVector();
 
         for (int solutionIndex = 0; solutionIndex <= solution.getSequenceLength(); solutionIndex++) {
