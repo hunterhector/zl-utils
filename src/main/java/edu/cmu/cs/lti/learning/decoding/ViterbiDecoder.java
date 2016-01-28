@@ -1,7 +1,10 @@
 package edu.cmu.cs.lti.learning.decoding;
 
+import com.google.common.collect.ArrayListMultimap;
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.training.SequenceDecoder;
+import edu.cmu.cs.lti.learning.utils.CubicLagrangian;
+import edu.cmu.cs.lti.learning.utils.DummyCubicLagrangian;
 import edu.cmu.cs.lti.utils.Functional;
 import gnu.trove.map.TIntObjectMap;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -26,19 +29,29 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     private int kBest;
 
+    private CubicLagrangian dummyLagrangian = new DummyCubicLagrangian();
+
+    private ArrayListMultimap<Integer, Integer> constraints;
+
     public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet) {
-        this(featureAlphabet, classAlphabet, false);
+        this(featureAlphabet, classAlphabet, false, ArrayListMultimap.create());
     }
 
-    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, boolean binaryFeature) {
-        this(featureAlphabet, classAlphabet, binaryFeature, 1);
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet,
+                          ArrayListMultimap<Integer, Integer> constraints) {
+        this(featureAlphabet, classAlphabet, false, constraints);
     }
 
     public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, boolean binaryFeature,
-                          int kBest) {
+                          ArrayListMultimap<Integer, Integer> constraints) {
+        this(featureAlphabet, classAlphabet, binaryFeature, 1, constraints);
+    }
+
+    public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet, boolean binaryFeature,
+                          int kBest, ArrayListMultimap<Integer, Integer> constraints) {
         super(featureAlphabet, classAlphabet, binaryFeature);
-//        this.featureCacher = featureCacher;
         this.kBest = kBest;
+        this.constraints = constraints;
     }
 
     private FeatureVector newFeatureVector() {
@@ -52,7 +65,8 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     @Override
     public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int sequenceLength,
-                       double lagrangian, TIntObjectMap<FeatureVector[]> featureCache, boolean useAverage) {
+                       CubicLagrangian u, CubicLagrangian v, TIntObjectMap<FeatureVector[]> featureCache,
+                       boolean useAverage) {
         solution = new SequenceSolution(classAlphabet, sequenceLength, kBest);
 
         // Dot product function on the node (i.e. only take features depend on current class)
@@ -74,7 +88,7 @@ public class ViterbiDecoder extends SequenceDecoder {
 
         for (; !solution.finished(); solution.advance()) {
             int sequenceIndex = solution.getCurrentPosition();
-            if (sequenceIndex == -1) {
+            if (sequenceIndex < 0) {
                 continue;
             }
 
@@ -87,6 +101,7 @@ public class ViterbiDecoder extends SequenceDecoder {
                 allBaseFeatures = featureCache.get(sequenceIndex);
             }
 
+            // The extraction part is not parallelized.
             if (allBaseFeatures == null) {
                 nodeFeature = newFeatureVector();
                 edgeFeature = newFeatureVector();
@@ -110,16 +125,31 @@ public class ViterbiDecoder extends SequenceDecoder {
             // Fill up lattice score for each of class in the current column.
             // TODO currently this creates a IllegalThreadState, some threads didn't exits.
             solution.getCurrentPossibleClassIndices().parallel().forEach(classIndex -> {
-                double newNodeScore = nodeDotProd.apply(nodeFeature, classIndex);
+                double lagrangianPenalty = solution.isRightLimit() ? 0 :
+                        u.getSumOverJVariable(sequenceIndex, classIndex)
+                                - getConstraintSumI(constraints, u, sequenceIndex, classIndex)
+                                + v.getSumOverIVariable(sequenceIndex, classIndex)
+                                - getConstraintSumJ(constraints, v, sequenceIndex, classIndex);
+
+//                double lagrangianPenalty = solution.isRightLimit() ? 0 :
+//                        u.getSumOverJVariable(sequenceIndex, classIndex) -
+//                                u.getSumOverIVariable(sequenceIndex, classIndex) +
+//                                v.getSumOverIVariable(sequenceIndex, classIndex) -
+//                                v.getSumOverJVariable(sequenceIndex, classIndex);
+
+//                if (lagrangianPenalty != 0) {
+//                    logger.debug("Lagrangian for class index " + classIndex + " at " + sequenceIndex + " is " +
+//                            lagrangianPenalty);
+//                }
+
+                double newNodeScore = nodeDotProd.apply(nodeFeature, classIndex) + lagrangianPenalty;
+
                 MutableInt argmaxPreviousState = new MutableInt(-1);
 
                 // Check which previous state gives the best score.
                 solution.getPreviousPossibleClassIndices().forEach(prevState -> {
                     for (SequenceSolution.LatticeCell previousBest : solution.getPreviousBests(prevState)) {
-                        double newEdgeScore = 0;
-                        if (classIndex == prevState) {
-                            newEdgeScore = edgeDotProd.apply(edgeFeature, classIndex, prevState);
-                        }
+                        double newEdgeScore = edgeDotProd.apply(edgeFeature, classIndex, prevState);
 
                         int addResult = solution.scoreNewEdge(classIndex, previousBest, newEdgeScore, newNodeScore);
                         if (addResult == 1) {
@@ -141,15 +171,31 @@ public class ViterbiDecoder extends SequenceDecoder {
                 // Taking features from previous best cell.
                 currentFeatureVectors[classIndex].extend(previousColFeatureVectors[bestPrev]);
                 // Adding features for the edge.
-                if (bestPrev == classIndex) {
-                    // Note: additional condition that we are only interested in case where previous is the same.
-                    currentFeatureVectors[classIndex].extend(edgeFeature, classIndex, bestPrev);
-                }
+                currentFeatureVectors[classIndex].extend(edgeFeature, classIndex, bestPrev);
             });
         }
         solution.backTrace();
 
         bestVector = currentFeatureVectors[classAlphabet.getOutsideClassIndex()];
+    }
+
+    private double getConstraintSumJ(ArrayListMultimap<Integer, Integer> allowedCorefs, CubicLagrangian l,
+                                     int decodingIndex, int decodingType) {
+        double constraintSum = 0;
+
+        for (int allowedType : allowedCorefs.get(decodingType)) {
+            constraintSum += l.getSumOverJVariable(decodingIndex, allowedType);
+        }
+        return constraintSum;
+    }
+
+    private double getConstraintSumI(ArrayListMultimap<Integer, Integer> allowedCorefs, CubicLagrangian l,
+                                     int decodingIndex, int decodingType) {
+        double constraintSum = 0;
+        for (int allowedType : allowedCorefs.get(decodingType)) {
+            constraintSum += l.getSumOverIVariable(decodingIndex, allowedType);
+        }
+        return constraintSum;
     }
 
     @Override
@@ -173,18 +219,9 @@ public class ViterbiDecoder extends SequenceDecoder {
             extractor.extract(solutionIndex, nodeFeatures, edgeFeatures);
 
             int classIndex = solution.getClassAt(solutionIndex);
-            int previousStateIndex = solutionIndex == 0 ? classAlphabet.getOutsideClassIndex() : solution.getClassAt
-                    (solutionIndex - 1);
 
             fv.extend(nodeFeatures, classIndex);
-
-            // TODO be careful of this equality check.
-            if (previousStateIndex == classIndex) {
-                // Note: additional condition that we are only interested in case where previous is the same.
-                fv.extend(edgeFeatures, classIndex, previousStateIndex);
-            }
         }
-
         return fv;
     }
 }

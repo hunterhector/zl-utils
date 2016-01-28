@@ -5,9 +5,8 @@ import gnu.trove.map.TIntDoubleMap;
 import gnu.trove.map.hash.TIntDoubleHashMap;
 
 /**
- * Created with IntelliJ IDEA.
- * Date: 8/22/15
- * Time: 4:38 PM
+ * Represent a real valued feature vector, implemented with hash map. It does not support negative or zero feature
+ * values for performance benefits.
  *
  * @author Zhengzhong Liu
  */
@@ -25,6 +24,9 @@ public class RealValueHashFeatureVector extends FeatureVector {
     @Override
     protected boolean addFeatureInternal(int featureIndex, double featureValue) {
         double adjustedValue = fv.adjustOrPutValue(featureIndex, featureValue, featureValue);
+        // This is a tricky small performance hack. We assume that we only add stuff to feature vector and do no
+        // deduction (means we don't remove feature from a feature vector, and we don't put negative and zero values.)
+        // In such case, if the new adjusted value is the same as the old value, that means this feature is a new one.
         return adjustedValue == featureValue;
     }
 

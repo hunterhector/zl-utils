@@ -3,11 +3,6 @@ package edu.cmu.cs.lti.learning.model;
 import gnu.trove.iterator.TIntDoubleIterator;
 import gnu.trove.map.TIntDoubleMap;
 import gnu.trove.map.hash.TIntDoubleHashMap;
-import org.apache.commons.lang3.SerializationUtils;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 
 /**
  * Created with IntelliJ IDEA.
@@ -59,32 +54,32 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
         averageUpdateCount++;
     }
 
-    @Override
-    public void write(File outputFile) throws FileNotFoundException {
-        consolidate();
-        SerializationUtils.serialize(this, new FileOutputStream(outputFile));
-        deconsolidate();
-    }
-
-    @Override
-    public double dotProd(FeatureVector fv) {
-        double sum = 0;
-        for (FeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
-            iter.next();
-            sum += weights.get(iter.featureIndex()) * iter.featureValue();
-        }
-        return sum;
-    }
-
-    @Override
-    public double dotProdAver(FeatureVector fv) {
-        double sum = 0;
-        for (FeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
-            iter.next();
-            sum += averagedWeights.get(iter.featureIndex()) * iter.featureValue();
-        }
-        return sum;
-    }
+//    @Override
+//    public void write(File outputFile) throws FileNotFoundException {
+//        consolidate();
+//        SerializationUtils.serialize(this, new FileOutputStream(outputFile));
+//        deconsolidate();
+//    }
+//
+//    @Override
+//    public double dotProd(FeatureVector fv) {
+//        double sum = 0;
+//        for (FeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
+//            iter.next();
+//            sum += weights.get(iter.featureIndex()) * iter.featureValue();
+//        }
+//        return sum;
+//    }
+//
+//    @Override
+//    public double dotProdAver(FeatureVector fv) {
+//        double sum = 0;
+//        for (FeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
+//            iter.next();
+//            sum += averagedWeights.get(iter.featureIndex()) * iter.featureValue();
+//        }
+//        return sum;
+//    }
 
     @Override
     void consolidate() {
@@ -130,5 +125,9 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
     @Override
     public int getFeatureSize() {
         return weights.size();
+    }
+
+    public TIntDoubleIterator getWeightsIterator() {
+        return weights.iterator();
     }
 }

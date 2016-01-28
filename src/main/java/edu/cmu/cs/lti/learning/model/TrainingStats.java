@@ -19,6 +19,8 @@ public class TrainingStats {
 
     private int resetableInstanceCount = 0;
 
+    private String name = "Training";
+
     private double overallLoss = 0;
 
     public TrainingStats(int averageLossOverN) {
@@ -26,12 +28,19 @@ public class TrainingStats {
         reset();
     }
 
+    public TrainingStats(int averageLossOverN, String name) {
+        this.averageLossOverN = averageLossOverN;
+        this.name = name;
+        reset();
+    }
+
+
     public void addLoss(Logger logger, double loss) {
         addLoss(loss);
 
         if (numInstanceProcessed % averageLossOverN == 0) {
-            logger.info(String.format("Average loss of previous %d instance is %.3f", averageLossOverN,
-                    recentAccumulatedLoss / averageLossOverN));
+            logger.info(String.format("Average loss of previous %d instance is %.3f for %s", averageLossOverN,
+                    recentAccumulatedLoss / averageLossOverN, name));
             recentAccumulatedLoss = 0;
         }
     }

@@ -43,11 +43,11 @@ public abstract class FeatureVector implements Serializable {
      *
      * @return The Feature Vector sharing the settings.
      */
-    public abstract FeatureVector newVector();
+    protected abstract FeatureVector newVector();
 
     /**
-     * Add a feature to the feature vector by directly accessing the feature index. We normally do not want to access
-     * it outside because feature index should come from a feature alphabet.
+     * Add a feature to the feature vector by directly accessing the feature index. This method is called internally
+     * because the feature index comes from the internal feature alphabet.
      *
      * @param featureIndex The feature index.
      * @param featureValue The value of the feature.
@@ -144,9 +144,10 @@ public abstract class FeatureVector implements Serializable {
         String sep = separator;
         while (iter.hasNext()) {
             iter.next();
+            double featureValue = iter.featureValue();
             features.append(sep);
             features.append(String.format("%d %s : %.2f", iter.featureIndex(), alphabet.getFeatureNameRepre(iter
-                    .featureIndex()), iter.featureValue()));
+                    .featureIndex()), featureValue));
             sep = separator;
         }
 

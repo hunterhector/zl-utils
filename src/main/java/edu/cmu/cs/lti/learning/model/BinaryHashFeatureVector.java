@@ -5,9 +5,7 @@ import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.hash.TIntIntHashMap;
 
 /**
- * Created with IntelliJ IDEA.
- * Date: 8/20/15
- * Time: 10:54 PM
+ * Represent a binary valued feature vector, implemented with hash map.
  *
  * @author Zhengzhong Liu
  */

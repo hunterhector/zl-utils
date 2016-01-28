@@ -1,5 +1,7 @@
 package edu.cmu.cs.lti.utils;
 
+import org.slf4j.Logger;
+
 /**
  * Created with IntelliJ IDEA.
  * User: zhengzhongliu
@@ -27,6 +29,24 @@ public class DebugUtils {
                 "Memory: %.2f MB", msg, heapSize, heapMaxSize, heapFreeSize, heapSize - heapFreeSize);
     }
 
+    /**
+     * Pause when it is in debug mode.
+     *
+     * @param logger
+     */
+    public static void pause(Logger logger) {
+        if (logger.isDebugEnabled()) {
+            System.out.println("Press enter to continue...");
+            try {
+                System.in.read();
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    /**
+     * Always pause.
+     */
     public static void pause() {
         System.out.println("Press enter to continue...");
         try {

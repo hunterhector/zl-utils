@@ -108,7 +108,6 @@ public class GraphFeatureVector implements Serializable {
         return edgeFv.get(edgeEnd, edgeFrom);
     }
 
-
     // Currently only implemented differences on node key.
     public GraphFeatureVector nodeOnlyDiff(GraphFeatureVector minusVector) {
         GraphFeatureVector resultVector = new GraphFeatureVector(classAlphabet, featureAlphabet, isBinary);

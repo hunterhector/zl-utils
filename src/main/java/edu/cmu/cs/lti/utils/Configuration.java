@@ -107,7 +107,7 @@ public class Configuration {
 
     public String[] getList(String key) {
         String value = get(key);
-        if (value == null) {
+        if (value == null || value.isEmpty()) {
             return new String[0];
         }
 

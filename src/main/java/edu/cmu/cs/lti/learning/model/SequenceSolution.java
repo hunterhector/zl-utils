@@ -84,6 +84,8 @@ public class SequenceSolution extends Solution {
         solution = new int[bestK][sequenceLength];
         temporaryCells = new MinMaxPriorityQueue[classAlphabet.size()];
         latticeCells = new List[sequenceLength + 1][classAlphabet.size()];
+
+        // TODO: it might be useless to start at -1.
         currentPosition = -1;
     }
 
@@ -92,25 +94,29 @@ public class SequenceSolution extends Solution {
         private static final long serialVersionUID = 5198803127418485563L;
 
         private double score;
+        private double currentScore;
+        private double previousScore;
+        private double transitionScore;
         private int classIndex;
         private LatticeCell backPointer;
 
-        public int getClassIndex() {
-            return classIndex;
-        }
+//        public int getClassIndex() {
+//            return classIndex;
+//        }
+//
+//        public double getScore() {
+//            return score;
+//        }
 
-        public double getScore() {
-            return score;
-        }
-
-        public LatticeCell getBackPointer() {
-            return backPointer;
-        }
-
-        public LatticeCell(double score, int classIndex, LatticeCell backPointer) {
+        public LatticeCell(double score, int classIndex, LatticeCell backPointer, double currentScore, double
+                previousScore, double transitionScore) {
             this.score = score;
             this.classIndex = classIndex;
             this.backPointer = backPointer;
+            // These 3 scores are used for debug.
+            this.currentScore = currentScore;
+            this.previousScore = previousScore;
+            this.transitionScore = transitionScore;
         }
 
         /**
@@ -130,17 +136,26 @@ public class SequenceSolution extends Solution {
         }
 
         public String shortString() {
-            return String.format("[%.2f,%s <- %s]", score, classAlphabet.getClassName(classIndex), classAlphabet
-                    .getClassName(backPointer.classIndex));
+            return String.format("[%.2f=%.2f+%.2f+%.2f,%s <- %s]", score, previousScore, currentScore, transitionScore,
+                    classAlphabet.getClassName(classIndex), classAlphabet.getClassName(backPointer.classIndex));
         }
     }
 
     public LatticeCell getEmptyCell() {
-        return new LatticeCell(0, classAlphabet.getOutsideClassIndex(), null);
+        return new LatticeCell(0, classAlphabet.getOutsideClassIndex(), null, 0, 0, 0);
     }
 
+    /**
+     * When the iteration pointer is larger than the sequence length, i.e., after the sequence end outside position.
+     *
+     * @return Whether the solution is finished.
+     */
     public boolean finished() {
         return currentPosition > sequenceLength;
+    }
+
+    public boolean isRightLimit() {
+        return currentPosition == sequenceLength;
     }
 
     public int getNumClasses() {
@@ -200,25 +215,25 @@ public class SequenceSolution extends Solution {
     /**
      * Return the class of the best solution contained.
      *
-     * @param classIndex The class index
+     * @param sequenceIndex The class index
      * @return
      */
-    public int getClassAt(int classIndex) {
-        return getClassAt(0, classIndex);
+    public int getClassAt(int sequenceIndex) {
+        return getClassAt(0, sequenceIndex);
     }
 
     /**
      * Return the class of the k-th best solution.
      *
      * @param k
-     * @param classIndex
+     * @param sequenceIndex
      * @return
      */
-    public int getClassAt(int k, int classIndex) {
-        if (classIndex >= solution[k].length) {
+    public int getClassAt(int k, int sequenceIndex) {
+        if (sequenceIndex >= solution[k].length) {
             return classAlphabet.getOutsideClassIndex();
         }
-        return solution[k][classIndex];
+        return solution[k][sequenceIndex];
     }
 
     public List<LatticeCell> getPreviousBests(int classIndex) {
@@ -243,7 +258,7 @@ public class SequenceSolution extends Solution {
 
         int addResult = 0;
 
-        double newScoreTillHere = fromCell.getScore() + newEdgeScore + newNodeScore;
+        double newScoreTillHere = fromCell.score + newEdgeScore + newNodeScore;
 
         MinMaxPriorityQueue<LatticeCell> queue = temporaryCells[toCellClassIndex];
         if (queue == null) {
@@ -252,11 +267,12 @@ public class SequenceSolution extends Solution {
             addResult = 1;
         } else if (queue.isEmpty()) {
             addResult = 1;
-        } else if (queue.peek().getScore() < newScoreTillHere) {
+        } else if (queue.peek().score < newScoreTillHere) {
             addResult = 1;
         }
 
-        boolean rejected = !queue.offer(new LatticeCell(newScoreTillHere, toCellClassIndex, fromCell));
+        boolean rejected = !queue.offer(new LatticeCell(newScoreTillHere, toCellClassIndex, fromCell, newNodeScore,
+                fromCell.score, newEdgeScore));
         if (rejected) {
             addResult = -1;
         }
@@ -303,7 +319,7 @@ public class SequenceSolution extends Solution {
         LatticeCell currentCell = cell;
         for (int backCol = sequenceLength - 1; backCol >= 0; backCol--) {
             currentCell = currentCell.backPointer;
-            oneSolution[backCol] = currentCell.getClassIndex();
+            oneSolution[backCol] = currentCell.classIndex;
 //            System.out.println("Class index at " + backCol + " is " + currentCell.getClassIndex());
         }
         return oneSolution;
@@ -411,7 +427,7 @@ public class SequenceSolution extends Solution {
         MinMaxPriorityQueue<LatticeCell> q = this.createMaxFirstQueue();
 
         for (int i = 0; i < 6; i++) {
-            q.add(new LatticeCell(i, 0, null));
+            q.add(new LatticeCell(i, 0, null, 0, 0, 0));
         }
 
         while (!q.isEmpty()) {

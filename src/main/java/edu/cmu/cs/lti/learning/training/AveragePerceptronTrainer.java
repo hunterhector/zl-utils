@@ -1,6 +1,8 @@
 package edu.cmu.cs.lti.learning.training;
 
 import edu.cmu.cs.lti.learning.model.*;
+import edu.cmu.cs.lti.learning.utils.CubicLagrangian;
+import edu.cmu.cs.lti.utils.DebugUtils;
 import gnu.trove.map.TIntObjectMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,22 +42,23 @@ public class AveragePerceptronTrainer {
     }
 
     public double trainNext(SequenceSolution goldSolution, GraphFeatureVector goldFv, ChainFeatureExtractor extractor,
-                            double lagrangian, TIntObjectMap<FeatureVector[]> featureCache) {
-        decoder.decode(extractor, weightVector, goldSolution.getSequenceLength(), lagrangian, featureCache);
+                            CubicLagrangian u, CubicLagrangian v, TIntObjectMap<FeatureVector[]> featureCache) {
+        decoder.decode(extractor, weightVector, goldSolution.getSequenceLength(), u, v, featureCache);
         SequenceSolution prediction = decoder.getDecodedPrediction();
         double loss = goldSolution.loss(prediction);
-
-        if (loss != 0) {
-            GraphFeatureVector bestDecodingFeatures = decoder.getBestDecodingFeatures();
-            updateWeights(goldFv, bestDecodingFeatures);
-        }
 
 //        logger.debug("Prediction");
 //        logger.debug(prediction.toString());
 //        logger.debug("Gold");
 //        logger.debug(goldSolution.toString());
 //        logger.debug("Loss is " + loss);
-//        DebugUtils.pause();
+
+        if (loss != 0) {
+            GraphFeatureVector bestDecodingFeatures = decoder.getBestDecodingFeatures();
+            updateWeights(goldFv, bestDecodingFeatures);
+        }
+
+        DebugUtils.pause(logger);
 
         return loss;
     }
@@ -63,10 +66,13 @@ public class AveragePerceptronTrainer {
     private void updateWeights(GraphFeatureVector goldFv, GraphFeatureVector predictedFv) {
         weightVector.updateWeightsBy(goldFv, stepSize);
         weightVector.updateWeightsBy(predictedFv, -stepSize);
-
         weightVector.updateAverageWeights();
 
-//        logger.info(goldFv.readableNodeVector());
+//        logger.debug("Update gold feature vector");
+//        logger.debug(goldFv.readableNodeVector());
+//
+//        logger.debug("Update decoding feature vector");
+//        logger.debug(predictedFv.readableNodeVector());
     }
 
     public void write(File outputFile) throws FileNotFoundException {

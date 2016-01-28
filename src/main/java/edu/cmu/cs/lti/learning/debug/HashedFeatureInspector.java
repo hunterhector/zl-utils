@@ -8,6 +8,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.javatuples.Pair;
+import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +58,16 @@ public class HashedFeatureInspector {
         featureAlphabet.computeConflictRates();
     }
 
+    public PriorityQueue<Triple<Integer, String, Double>> loadTopKAverageStateFeatures(int k) {
+        PriorityQueue<Triple<Integer, String, Double>> topK = new PriorityQueue<>(k, comp);
+        for (Iterator<Triplet<Integer, Integer, AveragedWeightVector>> iter = weightVector.edgeWeightIterator(); iter
+                .hasNext(); ) {
+            Triplet<Integer, Integer, AveragedWeightVector> r = iter.next();
+            loadFeatures(r.getValue2()::getAverageWeightAt, r.getValue0(), r.getValue1(), topK, k);
+        }
+        return topK;
+    }
+
     public PriorityQueue<Triple<Integer, String, Double>> loadTopKAverageFeatures(int k) {
         PriorityQueue<Triple<Integer, String, Double>> topK = new PriorityQueue<>(k, comp);
         for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext(); ) {
@@ -73,6 +84,16 @@ public class HashedFeatureInspector {
             loadFeatures(r.getValue1()::getWeightAt, r.getValue0(), topK, k);
         }
         return topK;
+    }
+
+    public PriorityQueue<Triple<Integer, String, Double>> loadAllAverageStateFeatures() {
+        PriorityQueue<Triple<Integer, String, Double>> all = new PriorityQueue<>();
+        for (Iterator<Triplet<Integer, Integer, AveragedWeightVector>> iter = weightVector.edgeWeightIterator(); iter
+                .hasNext(); ) {
+            Triplet<Integer, Integer, AveragedWeightVector> r = iter.next();
+            loadFeatures(r.getValue2()::getAverageWeightAt, r.getValue0(), r.getValue1(), all, -1);
+        }
+        return all;
     }
 
     public PriorityQueue<Triple<Integer, String, Double>> loadAllAverageFeatures() {
@@ -106,6 +127,24 @@ public class HashedFeatureInspector {
             }
         }
     }
+
+    private void loadFeatures(Function<Integer, Double> getWeights, int nextClassIndex, int previousClassIndex,
+                              PriorityQueue<Triple<Integer, String, Double>> features, int k) {
+        for (int i = 0; i < weightVector.getFeatureDimension(); i++) {
+            double weight = getWeights.apply(i);
+            if (weight != 0) {
+                if (featureAlphabet.getMappedFeatureCounters(i) != null) {
+                    features.add(Triple.of(i, classAlphabet.getClassName(previousClassIndex) + "->" +
+                            classAlphabet.getClassName(nextClassIndex) + "_" +
+                            featureAlphabet.getMappedFeatureCounters(i), weight));
+                }
+                if (k > 0 && features.size() > k) {
+                    features.poll();
+                }
+            }
+        }
+    }
+
 
     private class ReverseFeatureComparator implements Comparator<Triple<Integer, String, Double>> {
         @Override
@@ -146,5 +185,10 @@ public class HashedFeatureInspector {
         inspector.writeInspects(new File(outputDirectory, "top100Final"), inspector.loadTopKFinalFeatures(100));
         inspector.writeInspects(new File(outputDirectory, "allAver"), inspector.loadAllAverageFeatures());
         inspector.writeInspects(new File(outputDirectory, "allFinal"), inspector.loadAllFinalFeatures());
+
+        inspector.writeInspects(new File(outputDirectory, "top100AverState"), inspector.loadTopKAverageStateFeatures
+                (100));
+        inspector.writeInspects(new File(outputDirectory, "allAverState"), inspector.loadAllAverageStateFeatures());
+
     }
 }

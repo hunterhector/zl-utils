@@ -1,6 +1,7 @@
 package edu.cmu.cs.lti.learning.training;
 
 import edu.cmu.cs.lti.learning.model.*;
+import edu.cmu.cs.lti.learning.utils.CubicLagrangian;
 import gnu.trove.map.TIntObjectMap;
 
 /**
@@ -40,17 +41,18 @@ public abstract class SequenceDecoder {
     }
 
     public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, double lagrangian, boolean useAverage) {
-        decode(extractor, weightVector, sequenceLength, lagrangian, null, useAverage);
+            sequenceLength, CubicLagrangian u, CubicLagrangian v, boolean useAverage) {
+        decode(extractor, weightVector, sequenceLength, u, v, null, useAverage);
     }
 
     public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, double lagrangian, TIntObjectMap<FeatureVector[]> cachedFeatures) {
-        decode(extractor, weightVector, sequenceLength, lagrangian, cachedFeatures, false);
+            sequenceLength, CubicLagrangian u, CubicLagrangian v, TIntObjectMap<FeatureVector[]> cachedFeatures) {
+        decode(extractor, weightVector, sequenceLength, u, v, cachedFeatures, false);
     }
 
-    public abstract void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, double lagrangian, TIntObjectMap<FeatureVector[]> cachedFeatures, boolean useAverage);
+    public abstract void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int sequenceLength,
+                                CubicLagrangian u, CubicLagrangian v, TIntObjectMap<FeatureVector[]> cachedFeatures,
+                                boolean useAverage);
 
     public abstract SequenceSolution getDecodedPrediction();
 

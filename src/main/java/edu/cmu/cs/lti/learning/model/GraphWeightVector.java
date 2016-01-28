@@ -32,6 +32,7 @@ public class GraphWeightVector implements Serializable {
 
     private TIntObjectMap<AveragedWeightVector> nodeWeights;
 
+    // <Current Key, Previous Key, Vector>
     private Table<Integer, Integer, AveragedWeightVector> edgeWeights;
 
     private final ClassAlphabet classAlphabet;
@@ -44,8 +45,6 @@ public class GraphWeightVector implements Serializable {
 
     private int averageUpdateCount;
 
-    private boolean useHashBaseWeighVector;
-
     public GraphWeightVector(ClassAlphabet classAlphabet, FeatureAlphabet featureAlphabet, String featureSpec) {
         nodeWeights = new TIntObjectHashMap<>();
         edgeWeights = HashBasedTable.create();
@@ -55,12 +54,18 @@ public class GraphWeightVector implements Serializable {
         this.featureSpec = featureSpec;
 
         averageUpdateCount = 0;
-        useHashBaseWeighVector = true;
     }
 
     private AveragedWeightVector newWeightVector() {
-        return useHashBaseWeighVector ? new HashBasedAveragedWeightVector(averageUpdateCount) :
-                new ArrayBasedAveragedWeightVector(featureAlphabet.getAlphabetSize(), averageUpdateCount);
+        return new HashBasedAveragedWeightVector(averageUpdateCount);
+    }
+
+    public AveragedWeightVector getNodeWeights(int classIndex) {
+        return nodeWeights.get(classIndex);
+    }
+
+    public AveragedWeightVector getEdgeWeights(int currentKey, int previousKey) {
+        return edgeWeights.get(currentKey, previousKey);
     }
 
     private synchronized AveragedWeightVector getOrCreateNodeWeights(int classIndex) {
@@ -73,12 +78,12 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
-    private synchronized AveragedWeightVector getOrCreateEdgeWeights(int rowIndex, int colIndex) {
-        if (edgeWeights.contains(rowIndex, colIndex)) {
-            return edgeWeights.get(rowIndex, colIndex);
+    private synchronized AveragedWeightVector getOrCreateEdgeWeights(int currentKey, int previousKey) {
+        if (edgeWeights.contains(currentKey, previousKey)) {
+            return edgeWeights.get(currentKey, previousKey);
         } else {
             AveragedWeightVector v = newWeightVector();
-            edgeWeights.put(rowIndex, colIndex, v);
+            edgeWeights.put(currentKey, previousKey, v);
             return v;
         }
     }
@@ -118,7 +123,8 @@ public class GraphWeightVector implements Serializable {
     }
 
     public synchronized void updateWeightsBy(FeatureVector fv, int currentKey, double multiplier) {
-        getOrCreateNodeWeights(currentKey).updateWeightsBy(fv, multiplier);
+        AveragedWeightVector weightVector = getOrCreateNodeWeights(currentKey);
+        weightVector.updateWeightsBy(fv, multiplier);
     }
 
     public synchronized void updateWeightsBy(FeatureVector fv, int currentKey, int previousKey, double multiplier) {
@@ -164,8 +170,8 @@ public class GraphWeightVector implements Serializable {
         return prod;
     }
 
-    public double dotProd(FeatureVector fv, int fromNodeKey, int toNodeKey) {
-        AveragedWeightVector weights = getOrCreateEdgeWeights(fromNodeKey, toNodeKey);
+    public double dotProd(FeatureVector fv, int currentKey, int previousKey) {
+        AveragedWeightVector weights = getOrCreateEdgeWeights(currentKey, previousKey);
         if (weights != null) {
             return weights.dotProd(fv);
         } else {
@@ -182,8 +188,8 @@ public class GraphWeightVector implements Serializable {
         return weights.dotProdAver(fv);
     }
 
-    public double dotProdAver(FeatureVector fv, int fromNodeKey, int toNodeKey) {
-        AveragedWeightVector weights = getOrCreateEdgeWeights(fromNodeKey, toNodeKey);
+    public double dotProdAver(FeatureVector fv, int currentKey, int previousKey) {
+        AveragedWeightVector weights = getOrCreateEdgeWeights(currentKey, previousKey);
         return weights.dotProdAver(fv);
     }
 

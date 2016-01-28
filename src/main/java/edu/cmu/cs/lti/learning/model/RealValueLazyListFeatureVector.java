@@ -12,7 +12,8 @@ import java.util.List;
  * Time: 2:38 PM
  * <p>
  * This feature vector is a lazy list implementation, all features added to it are considered as unique, it does not do
- * any checks on feature index.
+ * any checks on feature index. Duplicated features will simply be used multiple times. This will create performance
+ * overhead when number of duplicates is large.
  *
  * @author Zhengzhong Liu
  */
