@@ -60,6 +60,11 @@ public class GraphWeightVector implements Serializable {
         return new HashBasedAveragedWeightVector(averageUpdateCount);
     }
 
+
+    public AveragedWeightVector getNodeWeights(String className) {
+        return nodeWeights.get(classAlphabet.getClassIndex(className));
+    }
+
     public AveragedWeightVector getNodeWeights(int classIndex) {
         return nodeWeights.get(classIndex);
     }

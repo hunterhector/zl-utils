@@ -36,7 +36,7 @@ public class DebugUtils {
      */
     public static void pause(Logger logger) {
         if (logger.isDebugEnabled()) {
-            System.out.println("Press enter to continue...");
+            logger.debug("Press enter to continue...");
             try {
                 System.in.read();
             } catch (Exception e) {

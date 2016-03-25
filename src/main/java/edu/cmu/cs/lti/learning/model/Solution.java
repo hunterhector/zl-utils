@@ -28,4 +28,5 @@ public abstract class Solution implements Comparable, Serializable {
         return ((score - ((Solution) s).score) > 0) ? 1 : -1;
     }
 
+    public abstract int getClassAt(int i);
 }

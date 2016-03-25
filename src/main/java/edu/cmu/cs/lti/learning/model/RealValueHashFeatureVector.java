@@ -23,11 +23,9 @@ public class RealValueHashFeatureVector extends FeatureVector {
 
     @Override
     protected boolean addFeatureInternal(int featureIndex, double featureValue) {
+        boolean isNewFeature = !fv.containsKey(featureIndex);
         double adjustedValue = fv.adjustOrPutValue(featureIndex, featureValue, featureValue);
-        // This is a tricky small performance hack. We assume that we only add stuff to feature vector and do no
-        // deduction (means we don't remove feature from a feature vector, and we don't put negative and zero values.)
-        // In such case, if the new adjusted value is the same as the old value, that means this feature is a new one.
-        return adjustedValue == featureValue;
+        return isNewFeature;
     }
 
     @Override

@@ -23,22 +23,24 @@ public class AveragePerceptronTrainer {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private SequenceDecoder decoder;
     private GraphWeightVector weightVector;
-    private double stepSize;
+    private double defaultStepSize;
+    private boolean passiveAggressive;
 
     /**
      * A vanilla average perceptron, with a fixed step size.
      *
-     * @param decoder       The sequence decoder.
-     * @param classAlphabet The alphabet of possible output classes.
-     * @param alphabet      The alphabet of features.
-     * @param featureSpec   The feature specifications.
-     * @param stepSize      A fixed step size for each update.
+     * @param decoder           The sequence decoder.
+     * @param classAlphabet     The alphabet of possible output classes.
+     * @param featureAlphabet   The alphabet of features.
+     * @param featureSpec       The feature specifications.
+     * @param passiveAggressive Whether to use passive aggressive.
      */
-    public AveragePerceptronTrainer(SequenceDecoder decoder, ClassAlphabet classAlphabet, FeatureAlphabet alphabet,
-                                    String featureSpec, double stepSize) {
+    public AveragePerceptronTrainer(SequenceDecoder decoder, ClassAlphabet classAlphabet,
+                                    FeatureAlphabet featureAlphabet, String featureSpec, boolean passiveAggressive) {
         this.decoder = decoder;
-        weightVector = new GraphWeightVector(classAlphabet, alphabet, featureSpec);
-        this.stepSize = stepSize;
+        weightVector = new GraphWeightVector(classAlphabet, featureAlphabet, featureSpec);
+        this.defaultStepSize = 0.1;
+        this.passiveAggressive = passiveAggressive;
     }
 
     public double trainNext(SequenceSolution goldSolution, GraphFeatureVector goldFv, ChainFeatureExtractor extractor,
@@ -47,15 +49,24 @@ public class AveragePerceptronTrainer {
         SequenceSolution prediction = decoder.getDecodedPrediction();
         double loss = goldSolution.loss(prediction);
 
-//        logger.debug("Prediction");
+//        logger.debug("Prediction: ");
 //        logger.debug(prediction.toString());
-//        logger.debug("Gold");
+//        logger.debug("Gold: ");
 //        logger.debug(goldSolution.toString());
 //        logger.debug("Loss is " + loss);
 
         if (loss != 0) {
             GraphFeatureVector bestDecodingFeatures = decoder.getBestDecodingFeatures();
-            updateWeights(goldFv, bestDecodingFeatures);
+            GraphFeatureVector delta = goldFv.newGraphFeatureVector();
+            goldFv.diff(bestDecodingFeatures, delta);
+
+            if (passiveAggressive) {
+                double l2 = delta.getFeatureL2();
+                double tau = loss / l2;
+                updateWeights(goldFv, bestDecodingFeatures, tau);
+            } else {
+                updateWeights(goldFv, bestDecodingFeatures, defaultStepSize);
+            }
         }
 
         DebugUtils.pause(logger);
@@ -63,7 +74,7 @@ public class AveragePerceptronTrainer {
         return loss;
     }
 
-    private void updateWeights(GraphFeatureVector goldFv, GraphFeatureVector predictedFv) {
+    private void updateWeights(GraphFeatureVector goldFv, GraphFeatureVector predictedFv, double stepSize) {
         weightVector.updateWeightsBy(goldFv, stepSize);
         weightVector.updateWeightsBy(predictedFv, -stepSize);
         weightVector.updateAverageWeights();

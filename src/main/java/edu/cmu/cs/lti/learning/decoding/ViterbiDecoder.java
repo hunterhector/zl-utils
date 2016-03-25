@@ -55,12 +55,11 @@ public class ViterbiDecoder extends SequenceDecoder {
     }
 
     private FeatureVector newFeatureVector() {
-        return useBinary ? new BinaryHashFeatureVector(featureAlphabet) : new RealValueHashFeatureVector
-                (featureAlphabet);
+        return new RealValueHashFeatureVector(featureAlphabet);
     }
 
     private GraphFeatureVector newGraphFeatureVector() {
-        return new GraphFeatureVector(classAlphabet, featureAlphabet, useBinary);
+        return new GraphFeatureVector(classAlphabet, featureAlphabet);
     }
 
     @Override
@@ -130,17 +129,6 @@ public class ViterbiDecoder extends SequenceDecoder {
                                 - getConstraintSumI(constraints, u, sequenceIndex, classIndex)
                                 + v.getSumOverIVariable(sequenceIndex, classIndex)
                                 - getConstraintSumJ(constraints, v, sequenceIndex, classIndex);
-
-//                double lagrangianPenalty = solution.isRightLimit() ? 0 :
-//                        u.getSumOverJVariable(sequenceIndex, classIndex) -
-//                                u.getSumOverIVariable(sequenceIndex, classIndex) +
-//                                v.getSumOverIVariable(sequenceIndex, classIndex) -
-//                                v.getSumOverJVariable(sequenceIndex, classIndex);
-
-//                if (lagrangianPenalty != 0) {
-//                    logger.debug("Lagrangian for class index " + classIndex + " at " + sequenceIndex + " is " +
-//                            lagrangianPenalty);
-//                }
 
                 double newNodeScore = nodeDotProd.apply(nodeFeature, classIndex) + lagrangianPenalty;
 

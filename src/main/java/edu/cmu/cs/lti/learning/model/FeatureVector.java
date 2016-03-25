@@ -76,6 +76,19 @@ public abstract class FeatureVector implements Serializable {
         }
     }
 
+    /**
+     * Add a new feature with a multiplier
+     *
+     * @param vectorToAdd The feature to be add
+     * @param multiplier  The multiplier
+     */
+    public void extend(FeatureVector vectorToAdd, double multiplier) {
+        for (FeatureIterator iter = vectorToAdd.featureIterator(); iter.hasNext(); ) {
+            iter.next();
+            addFeature(iter.featureIndex(), iter.featureValue() * multiplier);
+        }
+    }
+
     public void diff(FeatureVector vectorToDiff, FeatureVector resultVector) {
         TIntSet overlappedFeatures = new TIntHashSet();
         for (FeatureIterator iter = vectorToDiff.featureIterator(); iter.hasNext(); ) {

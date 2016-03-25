@@ -83,11 +83,11 @@ public class HashAlphabet extends FeatureAlphabet {
         if (storeReadable) {
             TObjectIntMap counter = featureCounters[featureIndex];
             if (counter == null) {
-                return null;
+                return "<NOT_FOUND>";
             }
             return counter.toString();
         } else {
-            return null;
+            return "<UNSAVED>";
         }
     }
 

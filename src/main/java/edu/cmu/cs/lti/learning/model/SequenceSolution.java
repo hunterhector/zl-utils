@@ -1,6 +1,8 @@
 package edu.cmu.cs.lti.learning.model;
 
 import com.google.common.collect.MinMaxPriorityQueue;
+import gnu.trove.set.TIntSet;
+import gnu.trove.set.hash.TIntHashSet;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -43,9 +45,11 @@ public class SequenceSolution extends Solution {
     // K of the best K solution.
     private int bestK;
 
+    private TIntSet outsideSet;
+
     /**
      * Create a solution with existing sequence set, should be used for gold standard. Decoding support such as
-     * backpointer saving are not provided.
+     * back pointer saving are not provided in this constructor.
      *
      * @param classAlphabet The Class Alphabet contains state information.
      * @param sequence      The known sequence.
@@ -64,8 +68,19 @@ public class SequenceSolution extends Solution {
      * @param classAlphabet  The Class Alphabet contains state information.
      * @param sequenceLength The length of the solution.
      */
-    public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength) {
-        this(classAlphabet, sequenceLength, 1);
+    public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength, int bestK) {
+        this(classAlphabet, sequenceLength, bestK, new int[0]);
+    }
+
+    /**
+     * Create a empty solution object, which can be later filled during decoding. This is will create a best solution
+     * container, if you need a best k container, use SequenceSolution(ClassAlphabet, int, int).
+     *
+     * @param classAlphabet  The Class Alphabet contains state information.
+     * @param sequenceLength The length of the solution.
+     */
+    public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength, int... outsideIndices) {
+        this(classAlphabet, sequenceLength, 1, outsideIndices);
     }
 
     /**
@@ -77,7 +92,7 @@ public class SequenceSolution extends Solution {
      * @param bestK          How many sequence should be contained in the solution.
      */
     @SuppressWarnings("unchecked")
-    public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength, int bestK) {
+    public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength, int bestK, int... outsideIndices) {
         this.bestK = bestK;
         this.classAlphabet = classAlphabet;
         this.sequenceLength = sequenceLength;
@@ -85,8 +100,14 @@ public class SequenceSolution extends Solution {
         temporaryCells = new MinMaxPriorityQueue[classAlphabet.size()];
         latticeCells = new List[sequenceLength + 1][classAlphabet.size()];
 
+        outsideSet = new TIntHashSet();
+        for (Integer indice : outsideIndices) {
+            outsideSet.add(indice);
+        }
+
         // TODO: it might be useless to start at -1.
-        currentPosition = -1;
+//        currentPosition = -1;
+        currentPosition = 0;
     }
 
 
@@ -99,14 +120,6 @@ public class SequenceSolution extends Solution {
         private double transitionScore;
         private int classIndex;
         private LatticeCell backPointer;
-
-//        public int getClassIndex() {
-//            return classIndex;
-//        }
-//
-//        public double getScore() {
-//            return score;
-//        }
 
         public LatticeCell(double score, int classIndex, LatticeCell backPointer, double currentScore, double
                 previousScore, double transitionScore) {
@@ -175,7 +188,7 @@ public class SequenceSolution extends Solution {
     }
 
     public IntStream getPossibleClassIndices(int position) {
-        if (position >= sequenceLength || position < 0) {
+        if (position >= sequenceLength || position < 0 || outsideSet.contains(position)) {
             return classAlphabet.getOutsideClassRange();
         } else {
             return classAlphabet.getNormalClassesRange();
@@ -244,7 +257,7 @@ public class SequenceSolution extends Solution {
     }
 
     private MinMaxPriorityQueue<LatticeCell> createMaxFirstQueue() {
-        // Note that the comparison is revered within LatticCell, this make the Queue always discard the elemen with
+        // Note that the comparison is revered within LatticCell, this make the Queue always discard the element with
         // minimum value.
         // You could consider this Queue compare elements by their rank (higher value with lower rank number), maximum
         // value rank number 1.
@@ -284,6 +297,7 @@ public class SequenceSolution extends Solution {
         StringBuilder sb = new StringBuilder();
         String rowSep = "\t";
         String colSep = "";
+
         int rowNumber = 0;
         for (List<LatticeCell>[] backPointer : latticeCells) {
             sb.append(colSep);
@@ -302,6 +316,12 @@ public class SequenceSolution extends Solution {
         return sb.toString();
     }
 
+    public void backTraceTill(int until) {
+        for (int kthSolution = 0; kthSolution < bestK; kthSolution++) {
+            solution[kthSolution] = backTraceOne(latticeCells[until][0].get(kthSolution));
+        }
+    }
+
     public void backTrace() {
         for (int kthSolution = 0; kthSolution < bestK; kthSolution++) {
             solution[kthSolution] = backTraceOne(latticeCells[sequenceLength][0].get(kthSolution));
@@ -309,7 +329,7 @@ public class SequenceSolution extends Solution {
     }
 
     /**
-     * Back trace starting from one particular cell of the last column.
+     * Back trace starting from one particular cell.
      *
      * @param cell The cell to start from
      * @return The decoded solution.
@@ -327,6 +347,10 @@ public class SequenceSolution extends Solution {
 
     public int getSequenceLength() {
         return sequenceLength;
+    }
+
+    public int getRealSequenceLength() {
+        return sequenceLength - outsideSet.size();
     }
 
     /**

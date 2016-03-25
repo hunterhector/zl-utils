@@ -34,7 +34,9 @@ public abstract class AveragedWeightVector implements Serializable {
         for (FeatureVector.FeatureIterator iter = fv.featureIterator(); iter.hasNext(); ) {
             iter.next();
             sum += getWeightAt(iter.featureIndex()) * iter.featureValue();
+//            System.out.println(iter.featureIndex() + " " + getWeightAt(iter.featureIndex()) + " " + iter.featureValue());
         }
+//        System.out.println(sum);
         return sum;
     }
 

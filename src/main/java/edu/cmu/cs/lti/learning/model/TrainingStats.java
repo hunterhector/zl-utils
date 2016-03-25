@@ -45,7 +45,7 @@ public class TrainingStats {
         }
     }
 
-    public void addLoss(double loss) {
+    private void addLoss(double loss) {
         recentAccumulatedLoss += loss;
         overallLoss += loss;
         numInstanceProcessed++;
