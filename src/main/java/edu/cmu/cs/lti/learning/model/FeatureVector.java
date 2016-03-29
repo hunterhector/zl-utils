@@ -19,10 +19,11 @@ public abstract class FeatureVector implements Serializable {
 
     protected int featureSize;
 
-
     public FeatureVector(FeatureAlphabet alphabet) {
         this.alphabet = alphabet;
     }
+
+    public abstract FeatureVector newFeatureVector();
 
     public interface FeatureIterator {
         int featureIndex();

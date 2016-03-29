@@ -28,6 +28,12 @@ public class RealValueLazyListFeatureVector extends FeatureVector {
     }
 
     @Override
+    public FeatureVector newFeatureVector() {
+        return new RealValueLazyListFeatureVector(alphabet);
+    }
+
+
+    @Override
     public FeatureVector newVector() {
         return new RealValueLazyListFeatureVector(alphabet);
     }

@@ -22,6 +22,11 @@ public class RealValueHashFeatureVector extends FeatureVector {
     }
 
     @Override
+    public FeatureVector newFeatureVector() {
+        return new RealValueHashFeatureVector(alphabet);
+    }
+
+    @Override
     protected boolean addFeatureInternal(int featureIndex, double featureValue) {
         boolean isNewFeature = !fv.containsKey(featureIndex);
         double adjustedValue = fv.adjustOrPutValue(featureIndex, featureValue, featureValue);
