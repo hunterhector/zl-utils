@@ -30,6 +30,10 @@ public class SequenceSolution extends Solution {
     // Container for the solutions, the k-th row corresponding to k-th best solution.
     private int[][] solution;
 
+    // Container for the scores at each step, the k-th row corresponding to k-th best solution.
+    // The score is the additional score given by each step, to get the solution score, sum them up.
+    private double[][] elementScores;
+
     // Each cells stores a list of best states that ended here, stored as a queue (heap).
     // Because the MinMaxQueue will remove the greatest element when full, we reverse the comparator.
     // To retrieve the best score for each pointer, just do poll (remove afterwards), and take the negative.
@@ -97,6 +101,7 @@ public class SequenceSolution extends Solution {
         this.classAlphabet = classAlphabet;
         this.sequenceLength = sequenceLength;
         solution = new int[bestK][sequenceLength];
+        elementScores = new double[bestK][sequenceLength];
         temporaryCells = new MinMaxPriorityQueue[classAlphabet.size()];
         latticeCells = new List[sequenceLength + 1][classAlphabet.size()];
 
@@ -316,15 +321,17 @@ public class SequenceSolution extends Solution {
         return sb.toString();
     }
 
-    public void backTraceTill(int until) {
-        for (int kthSolution = 0; kthSolution < bestK; kthSolution++) {
-            solution[kthSolution] = backTraceOne(latticeCells[until][0].get(kthSolution));
-        }
-    }
-
     public void backTrace() {
         for (int kthSolution = 0; kthSolution < bestK; kthSolution++) {
-            solution[kthSolution] = backTraceOne(latticeCells[sequenceLength][0].get(kthSolution));
+            int[] oneSolution = new int[sequenceLength];
+            double[] oneScores = new double[sequenceLength];
+            backTraceOne(latticeCells[sequenceLength][0].get(kthSolution), oneSolution, oneScores);
+            solution[kthSolution] = oneSolution;
+
+            for (int i = sequenceLength - 1; i > 0; i--) {
+                oneScores[i] = oneScores[i] - oneScores[i - 1];
+            }
+            elementScores[kthSolution] = oneScores;
         }
     }
 
@@ -334,12 +341,12 @@ public class SequenceSolution extends Solution {
      * @param cell The cell to start from
      * @return The decoded solution.
      */
-    private int[] backTraceOne(LatticeCell cell) {
-        int[] oneSolution = new int[sequenceLength];
+    private int[] backTraceOne(LatticeCell cell, int[] oneSolution, double[] oneScores) {
         LatticeCell currentCell = cell;
         for (int backCol = sequenceLength - 1; backCol >= 0; backCol--) {
             currentCell = currentCell.backPointer;
             oneSolution[backCol] = currentCell.classIndex;
+            oneScores[backCol] = currentCell.score;
 //            System.out.println("Class index at " + backCol + " is " + currentCell.getClassIndex());
         }
         return oneSolution;

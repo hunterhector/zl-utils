@@ -163,7 +163,6 @@ public class ViterbiDecoder extends SequenceDecoder {
             });
         }
         solution.backTrace();
-
         bestVector = currentFeatureVectors[classAlphabet.getOutsideClassIndex()];
     }
 

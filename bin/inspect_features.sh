@@ -1,5 +1,5 @@
 #!/bin/sh 
-export MAVEN_OPTS="-Xmx8g"
+export MAVEN_OPTS="-Xmx20g"
 
 if [ "$#" -ne 2 ]; then
     echo "Usage : inspect_feature.sh [model directory] [output directory]"
