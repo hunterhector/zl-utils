@@ -1,8 +1,10 @@
 package edu.cmu.cs.lti.learning.training;
 
+import com.google.common.collect.HashBasedTable;
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.utils.CubicLagrangian;
 import gnu.trove.map.TIntObjectMap;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * Created with IntelliJ IDEA.
@@ -40,19 +42,20 @@ public abstract class SequenceDecoder {
         this.useBinary = binaryFeature;
     }
 
-    public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, CubicLagrangian u, CubicLagrangian v, boolean useAverage) {
+    public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int sequenceLength,
+                       CubicLagrangian u, CubicLagrangian v, boolean useAverage) {
         decode(extractor, weightVector, sequenceLength, u, v, null, useAverage);
     }
 
-    public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int
-            sequenceLength, CubicLagrangian u, CubicLagrangian v, TIntObjectMap<FeatureVector[]> cachedFeatures) {
-        decode(extractor, weightVector, sequenceLength, u, v, cachedFeatures, false);
+    public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int sequenceLength,
+                       CubicLagrangian u, CubicLagrangian v, TIntObjectMap<Pair<FeatureVector,
+            HashBasedTable<Integer, Integer, FeatureVector>>> featureCache) {
+        decode(extractor, weightVector, sequenceLength, u, v, featureCache, false);
     }
 
     public abstract void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int sequenceLength,
-                                CubicLagrangian u, CubicLagrangian v, TIntObjectMap<FeatureVector[]> cachedFeatures,
-                                boolean useAverage);
+                                CubicLagrangian u, CubicLagrangian v, TIntObjectMap<Pair<FeatureVector,
+            HashBasedTable<Integer, Integer, FeatureVector>>> featureCache, boolean useAverage);
 
     public abstract SequenceSolution getDecodedPrediction();
 

@@ -52,6 +52,17 @@ public class GraphFeatureVector implements Serializable {
         return new RealValueHashFeatureVector(featureAlphabet);
     }
 
+    public void add(String featureName, double featureValue, int edgeEnd, int edgeFrom) {
+        FeatureVector thisFv;
+        if (edgeFv.contains(edgeEnd, edgeFrom)) {
+            thisFv = edgeFv.get(edgeEnd, edgeFrom);
+        } else {
+            thisFv = newFeatureVector();
+            edgeFv.put(edgeEnd, edgeFrom, thisFv);
+        }
+        thisFv.addFeature(featureName, featureValue);
+    }
+
     public void extend(FeatureVector fv, String endClassName, String fromClassName) {
         extend(fv, classAlphabet.getClassIndex(endClassName), classAlphabet.getClassIndex(fromClassName));
     }

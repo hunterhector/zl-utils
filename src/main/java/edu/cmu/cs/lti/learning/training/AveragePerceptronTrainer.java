@@ -1,9 +1,11 @@
 package edu.cmu.cs.lti.learning.training;
 
+import com.google.common.collect.HashBasedTable;
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.utils.CubicLagrangian;
 import edu.cmu.cs.lti.utils.DebugUtils;
 import gnu.trove.map.TIntObjectMap;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,11 +45,12 @@ public class AveragePerceptronTrainer {
         this.passiveAggressive = passiveAggressive;
     }
 
-    public double trainNext(SequenceSolution goldSolution, GraphFeatureVector goldFv, ChainFeatureExtractor extractor,
-                            CubicLagrangian u, CubicLagrangian v, TIntObjectMap<FeatureVector[]> featureCache) {
+    public double trainNext(SequenceSolution goldSolution, GraphFeatureVector goldFv, ChainFeatureExtractor
+            extractor, CubicLagrangian u, CubicLagrangian v, TIntObjectMap<Pair<FeatureVector,
+            HashBasedTable<Integer, Integer, FeatureVector>>> featureCache, String lossType) {
         decoder.decode(extractor, weightVector, goldSolution.getSequenceLength(), u, v, featureCache);
         SequenceSolution prediction = decoder.getDecodedPrediction();
-        double loss = goldSolution.loss(prediction);
+        double loss = goldSolution.loss(prediction, lossType);
 
 //        logger.debug("Prediction: ");
 //        logger.debug(prediction.toString());

@@ -1,6 +1,7 @@
 package edu.cmu.cs.lti.learning.model;
 
 import com.google.common.collect.MinMaxPriorityQueue;
+import edu.cmu.cs.lti.learning.update.SeqLoss;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 import org.apache.commons.lang3.builder.CompareToBuilder;
@@ -20,7 +21,7 @@ import java.util.stream.IntStream;
  *
  * @author Zhengzhong Liu
  */
-public class SequenceSolution extends Solution {
+public class SequenceSolution implements Serializable {
     private static final long serialVersionUID = 4963833442738553688L;
 //    private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -50,6 +51,8 @@ public class SequenceSolution extends Solution {
     private int bestK;
 
     private TIntSet outsideSet;
+
+    private double score = Double.NEGATIVE_INFINITY;
 
     /**
      * Create a solution with existing sequence set, should be used for gold standard. Decoding support such as
@@ -408,50 +411,85 @@ public class SequenceSolution extends Solution {
     /**
      * Compute loss of two solutions, always computed on the best solution.
      *
-     * @param s The other solution to compute the loss against.
+     * @param s        The other solution to compute the loss against.
+     * @param lossType
      * @return
      */
-    @Override
-    public double loss(Solution s) {
+    public double loss(SequenceSolution s, String lossType) {
         if (getClass() != s.getClass())
             throw new IllegalArgumentException("Must compare with a sequence solution.");
 
-        SequenceSolution otherSolution = (SequenceSolution) s;
-
-        if (otherSolution.sequenceLength != sequenceLength) {
+        if (s.sequenceLength != sequenceLength) {
             throw new IllegalArgumentException("Cannot compare two solutions on difference sequences.");
         } else {
-            int[] thisBest = solution[0];
-            int mismatch = 0;
-            int tp = 0;
-            int numGold = 0;
-            int numSys = 0;
-            for (int i = 0; i < sequenceLength; i++) {
-                int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
-                if (thisBest[i] != otherClass) {
-                    numGold += 1;
-                    if (otherSolution.getClassAt(i) == thisBest[i]) {
-                        tp += 1;
-                    }
-                }
+            Integer[] goldSeq = new Integer[sequenceLength];
+            Integer[] otehrSeq = new Integer[sequenceLength];
 
-                if (otherSolution.getClassAt(i) != otherClass) {
-                    numSys += 1;
-                }
+            SeqLoss seqLoss = SeqLoss.getLoss(lossType);
 
-                if (otherSolution.getClassAt(i) != thisBest[i]) {
-                    mismatch += 1;
+            return seqLoss.compute(goldSeq, otehrSeq, classAlphabet.getNoneOfTheAboveClassIndex());
+        }
+    }
+
+    public double fLoss(SequenceSolution otherSolution) {
+        int tp = 0;
+        int numGold = 0;
+        int numSys = 0;
+
+        int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
+
+        for (int i = 0; i < sequenceLength; i++) {
+            if (getClassAt(i) != otherClass) {
+                numGold += 1;
+                if (otherSolution.getClassAt(i) == getClassAt(i)) {
+                    tp += 1;
                 }
             }
 
-            double precision = numSys > 0 ? tp * 1.0 / numSys : 1;
-            double recall = numGold > 0 ? tp * 1.0 / numGold : 1;
-
-            double f1 = precision + recall == 0 ? 0 : 2 * precision * recall / (precision + recall);
-
-            return 1 - f1;
-//            return mismatch * 1.0 / sequenceLength;
+            if (otherSolution.getClassAt(i) != otherClass) {
+                numSys += 1;
+            }
         }
+
+        double precision = numSys > 0 ? tp * 1.0 / numSys : 1;
+        double recall = numGold > 0 ? tp * 1.0 / numGold : 1;
+
+        double f1 = precision + recall == 0 ? 0 : 2 * precision * recall / (precision + recall);
+
+        return 1 - f1;
+    }
+
+    public double hammingLoss(SequenceSolution otherSolution) {
+        double hamming = 0;
+        for (int i = 0; i < sequenceLength; i++) {
+            if (getClassAt(i) != otherSolution.getClassAt(i)) {
+                hamming++;
+            }
+        }
+        return hamming;
+    }
+
+    public double recallHammingLoss(SequenceSolution otherSolution) {
+        double hamming = 0;
+        double recallPenalty = 2;
+
+        int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
+
+        for (int i = 0; i < sequenceLength; i++) {
+            if (getClassAt(i) != otherSolution.getClassAt(i)) {
+                if (getClassAt(i) != otherClass) {
+                    hamming += recallPenalty;
+                } else {
+                    hamming++;
+                }
+            }
+        }
+        return hamming;
+    }
+
+
+    protected void setScore(double score) {
+        this.score = score;
     }
 
     private void testQueue() {

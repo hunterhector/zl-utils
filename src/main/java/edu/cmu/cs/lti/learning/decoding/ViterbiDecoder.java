@@ -1,6 +1,8 @@
 package edu.cmu.cs.lti.learning.decoding;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.training.SequenceDecoder;
 import edu.cmu.cs.lti.learning.utils.CubicLagrangian;
@@ -8,9 +10,12 @@ import edu.cmu.cs.lti.learning.utils.DummyCubicLagrangian;
 import edu.cmu.cs.lti.utils.Functional;
 import gnu.trove.map.TIntObjectMap;
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.BiFunction;
 
 /**
@@ -32,6 +37,9 @@ public class ViterbiDecoder extends SequenceDecoder {
     private CubicLagrangian dummyLagrangian = new DummyCubicLagrangian();
 
     private ArrayListMultimap<Integer, Integer> constraints;
+
+    // Do not use any global feature for a viterbi decoder.
+    Map<Integer, Integer> knownStates = new HashMap<>();
 
     public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet) {
         this(featureAlphabet, classAlphabet, false, ArrayListMultimap.create());
@@ -64,7 +72,8 @@ public class ViterbiDecoder extends SequenceDecoder {
 
     @Override
     public void decode(ChainFeatureExtractor extractor, GraphWeightVector weightVector, int sequenceLength,
-                       CubicLagrangian u, CubicLagrangian v, TIntObjectMap<FeatureVector[]> featureCache,
+                       CubicLagrangian u, CubicLagrangian v,
+                       TIntObjectMap<Pair<FeatureVector, HashBasedTable<Integer, Integer, FeatureVector>>> featureCache,
                        boolean useAverage) {
         solution = new SequenceSolution(classAlphabet, sequenceLength, kBest);
 
@@ -92,10 +101,10 @@ public class ViterbiDecoder extends SequenceDecoder {
             }
 
             // Feature vector to be extracted or loaded from cache.
-            FeatureVector nodeFeature;
-            FeatureVector edgeFeature;
+            final FeatureVector nodeFeature;
+            final HashBasedTable<Integer, Integer, FeatureVector> edgeFeatures;
 
-            FeatureVector[] allBaseFeatures = null;
+            Pair<FeatureVector, HashBasedTable<Integer, Integer, FeatureVector>> allBaseFeatures = null;
             if (featureCache != null) {
                 allBaseFeatures = featureCache.get(sequenceIndex);
             }
@@ -103,14 +112,14 @@ public class ViterbiDecoder extends SequenceDecoder {
             // The extraction part is not parallelized.
             if (allBaseFeatures == null) {
                 nodeFeature = newFeatureVector();
-                edgeFeature = newFeatureVector();
-                extractor.extract(sequenceIndex, nodeFeature, edgeFeature);
+                edgeFeatures = HashBasedTable.create();
+                extractor.extract(sequenceIndex, nodeFeature, edgeFeatures);
                 if (featureCache != null) {
-                    featureCache.put(sequenceIndex, new FeatureVector[]{nodeFeature, edgeFeature});
+                    featureCache.put(sequenceIndex, Pair.of(nodeFeature, edgeFeatures));
                 }
             } else {
-                nodeFeature = allBaseFeatures[0];
-                edgeFeature = allBaseFeatures[1];
+                nodeFeature = allBaseFeatures.getLeft();
+                edgeFeatures = allBaseFeatures.getRight();
             }
 
             // Before move on to calculate the features of current index, copy the vector of the previous column,
@@ -137,7 +146,8 @@ public class ViterbiDecoder extends SequenceDecoder {
                 // Check which previous state gives the best score.
                 solution.getPreviousPossibleClassIndices().forEach(prevState -> {
                     for (SequenceSolution.LatticeCell previousBest : solution.getPreviousBests(prevState)) {
-                        double newEdgeScore = edgeDotProd.apply(edgeFeature, classIndex, prevState);
+                        double newEdgeScore = edgeDotProd.apply(edgeFeatures.get(prevState, classIndex),
+                                classIndex, prevState);
 
                         int addResult = solution.scoreNewEdge(classIndex, previousBest, newEdgeScore, newNodeScore);
                         if (addResult == 1) {
@@ -159,7 +169,7 @@ public class ViterbiDecoder extends SequenceDecoder {
                 // Taking features from previous best cell.
                 currentFeatureVectors[classIndex].extend(previousColFeatureVectors[bestPrev]);
                 // Adding features for the edge.
-                currentFeatureVectors[classIndex].extend(edgeFeature, classIndex, bestPrev);
+                currentFeatureVectors[classIndex].extend(edgeFeatures.get(bestPrev, classIndex), classIndex, bestPrev);
             });
         }
         solution.backTrace();
@@ -201,7 +211,7 @@ public class ViterbiDecoder extends SequenceDecoder {
 
         for (int solutionIndex = 0; solutionIndex <= solution.getSequenceLength(); solutionIndex++) {
             FeatureVector nodeFeatures = newFeatureVector();
-            FeatureVector edgeFeatures = newFeatureVector();
+            Table<Integer, Integer, FeatureVector> edgeFeatures = HashBasedTable.create();
 
             extractor.extract(solutionIndex, nodeFeatures, edgeFeatures);
 

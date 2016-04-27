@@ -2,7 +2,7 @@ package edu.cmu.cs.lti.learning.model;
 
 import gnu.trove.iterator.TObjectDoubleIterator;
 import gnu.trove.map.TObjectDoubleMap;
-import org.javatuples.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import weka.classifiers.Classifier;
 import weka.core.*;
 
@@ -100,7 +100,7 @@ public class WekaModel implements Serializable {
                 bestIndex = i;
             }
         }
-        return Pair.with(best, classAlphabet.getClassName(bestIndex));
+        return Pair.of(best, classAlphabet.getClassName(bestIndex));
     }
 
 

@@ -19,7 +19,8 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 
 /**
- * Created with IntelliJ IDEA.
+ * Graph Weight Vector stores weights on nodes and edges. Edge weights do not record node index, instead, they are
+ * used to store weights with their node labels.
  * Date: 9/16/15
  * Time: 8:28 PM
  *
@@ -196,6 +197,20 @@ public class GraphWeightVector implements Serializable {
     public double dotProdAver(FeatureVector fv, int currentKey, int previousKey) {
         AveragedWeightVector weights = getOrCreateEdgeWeights(currentKey, previousKey);
         return weights.dotProdAver(fv);
+    }
+
+    public double dotProdAver(GraphFeatureVector fv) {
+        double prod = 0;
+        for (TIntObjectIterator<FeatureVector> iter = fv.nodeFvIter(); iter.hasNext(); ) {
+            iter.advance();
+            prod += dotProdAver(iter.value(), iter.key());
+        }
+
+        for (Iterator<Table.Cell<Integer, Integer, FeatureVector>> iter = fv.edgeFvIter(); iter.hasNext(); ) {
+            Table.Cell<Integer, Integer, FeatureVector> cell = iter.next();
+            prod += dotProdAver(cell.getValue(), cell.getRowKey(), cell.getColumnKey());
+        }
+        return prod;
     }
 
     public void write(File outputFile) throws FileNotFoundException {

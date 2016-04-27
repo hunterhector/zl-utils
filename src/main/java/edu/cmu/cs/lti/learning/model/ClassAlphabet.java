@@ -112,7 +112,11 @@ public class ClassAlphabet implements Serializable {
         if (classIndices.containsKey(className)) {
             return classIndices.get(className);
         } else {
-            return addClass(className);
+            if (className != null) {
+                return addClass(className);
+            } else {
+                throw new IllegalArgumentException("Class Name cannot be null.");
+            }
         }
     }
 
