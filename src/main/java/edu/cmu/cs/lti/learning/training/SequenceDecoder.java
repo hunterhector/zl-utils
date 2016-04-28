@@ -1,6 +1,7 @@
 package edu.cmu.cs.lti.learning.training;
 
 import com.google.common.collect.HashBasedTable;
+import edu.cmu.cs.lti.learning.ChainFeatureExtractor;
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.utils.CubicLagrangian;
 import gnu.trove.map.TIntObjectMap;

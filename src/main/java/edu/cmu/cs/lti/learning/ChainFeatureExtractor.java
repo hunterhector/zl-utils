@@ -1,9 +1,12 @@
-package edu.cmu.cs.lti.learning.model;
+package edu.cmu.cs.lti.learning;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import edu.cmu.cs.lti.learning.model.FeatureAlphabet;
+import edu.cmu.cs.lti.learning.model.FeatureVector;
+import edu.cmu.cs.lti.learning.model.MultiNodeKey;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
@@ -26,6 +29,6 @@ public abstract class ChainFeatureExtractor {
     public abstract void extract(int focus, FeatureVector nodeFeatures,
                                  Table<Integer, Integer, FeatureVector> edgeFeatures);
 
-    public abstract void extractGlobal(int focus, FeatureVector globalFeatures, Map<Integer, String> knownStates);
+    public abstract void extractGlobal(int focus, FeatureVector globalFeatures, List<MultiNodeKey> knownStates);
 
 }

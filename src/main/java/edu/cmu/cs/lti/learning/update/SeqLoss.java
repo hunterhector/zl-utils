@@ -1,5 +1,8 @@
 package edu.cmu.cs.lti.learning.update;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Created with IntelliJ IDEA.
  * Date: 3/13/16
@@ -8,6 +11,12 @@ package edu.cmu.cs.lti.learning.update;
  * @author Zhengzhong Liu
  */
 public abstract class SeqLoss {
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+    public SeqLoss() {
+        logger.info("Using sequence loss: " + this.getClass().getSimpleName());
+    }
+
     public <T> double compute(T[] gold, T[] sys, T noneValue) {
         if (gold.length == sys.length) {
             return computeInternal(gold, sys, noneValue);
@@ -38,6 +47,7 @@ public abstract class SeqLoss {
             default:
                 seqLoss = new HammingLoss();
         }
+
         return seqLoss;
     }
 }

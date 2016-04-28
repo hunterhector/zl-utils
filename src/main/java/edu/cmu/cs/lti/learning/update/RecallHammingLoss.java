@@ -16,15 +16,18 @@ public class RecallHammingLoss extends SeqLoss {
     }
 
     public RecallHammingLoss(double recallPenalty) {
+        super();
+        logger.info("Recall penalty is " + recallPenalty);
         this.recallPenalty = recallPenalty;
     }
 
     @Override
     public <T> double computeInternal(T[] gold, T[] sys, T noneValue) {
         double hamming = 0;
+
         for (int i = 0; i < gold.length; i++) {
             if (!gold[i].equals(sys[i])) {
-                if (sys[i] == noneValue) {
+                if (sys[i].equals(noneValue)) {
                     hamming += recallPenalty;
                 } else {
                     hamming++;

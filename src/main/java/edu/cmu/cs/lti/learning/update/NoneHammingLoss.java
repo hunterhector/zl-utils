@@ -15,6 +15,8 @@ public class NoneHammingLoss extends SeqLoss {
     }
 
     public NoneHammingLoss(double nonePenalty) {
+        super();
+        logger.info("None penalty is " + nonePenalty);
         this.nonePenalty = nonePenalty;
     }
 
@@ -23,7 +25,7 @@ public class NoneHammingLoss extends SeqLoss {
         double hamming = 0;
         for (int i = 0; i < gold.length; i++) {
             if (!gold[i].equals(sys[i])) {
-                if (sys[i] == noneValue || gold[i] == noneValue) {
+                if (sys[i].equals(noneValue) || gold[i].equals(noneValue)) {
                     hamming += nonePenalty;
                 } else {
                     hamming++;

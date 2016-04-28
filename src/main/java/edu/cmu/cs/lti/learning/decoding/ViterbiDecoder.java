@@ -3,6 +3,7 @@ package edu.cmu.cs.lti.learning.decoding;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import edu.cmu.cs.lti.learning.ChainFeatureExtractor;
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.training.SequenceDecoder;
 import edu.cmu.cs.lti.learning.utils.CubicLagrangian;
