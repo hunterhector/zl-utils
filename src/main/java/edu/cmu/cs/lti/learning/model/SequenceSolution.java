@@ -1,11 +1,12 @@
 package edu.cmu.cs.lti.learning.model;
 
 import com.google.common.collect.MinMaxPriorityQueue;
-import edu.cmu.cs.lti.learning.update.SeqLoss;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ import java.util.stream.IntStream;
  */
 public class SequenceSolution implements Serializable {
     private static final long serialVersionUID = 4963833442738553688L;
-//    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final transient Logger logger = LoggerFactory.getLogger(getClass());
 
     private ClassAlphabet classAlphabet;
     private int sequenceLength;
@@ -54,6 +55,7 @@ public class SequenceSolution implements Serializable {
 
     private double score = Double.NEGATIVE_INFINITY;
 
+
     /**
      * Create a solution with existing sequence set, should be used for gold standard. Decoding support such as
      * back pointer saving are not provided in this constructor.
@@ -74,6 +76,7 @@ public class SequenceSolution implements Serializable {
      *
      * @param classAlphabet  The Class Alphabet contains state information.
      * @param sequenceLength The length of the solution.
+     * @param bestK          The value of bestK.
      */
     public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength, int bestK) {
         this(classAlphabet, sequenceLength, bestK, new int[0]);
@@ -85,6 +88,7 @@ public class SequenceSolution implements Serializable {
      *
      * @param classAlphabet  The Class Alphabet contains state information.
      * @param sequenceLength The length of the solution.
+     * @param outsideIndices A list of outside index to avoid.
      */
     public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength, int... outsideIndices) {
         this(classAlphabet, sequenceLength, 1, outsideIndices);
@@ -97,6 +101,7 @@ public class SequenceSolution implements Serializable {
      * @param classAlphabet  The Class Alphabet contains state information.
      * @param sequenceLength The length of the solution.
      * @param bestK          How many sequence should be contained in the solution.
+     * @param outsideIndices A list of outside index to avoid.
      */
     @SuppressWarnings("unchecked")
     public SequenceSolution(ClassAlphabet classAlphabet, int sequenceLength, int bestK, int... outsideIndices) {
@@ -408,85 +413,68 @@ public class SequenceSolution implements Serializable {
         return true;
     }
 
-    /**
-     * Compute loss of two solutions, always computed on the best solution.
-     *
-     * @param s        The other solution to compute the loss against.
-     * @param lossType
-     * @return
-     */
-    public double loss(SequenceSolution s, String lossType) {
-        if (getClass() != s.getClass())
-            throw new IllegalArgumentException("Must compare with a sequence solution.");
-
-        if (s.sequenceLength != sequenceLength) {
-            throw new IllegalArgumentException("Cannot compare two solutions on difference sequences.");
-        } else {
-            Integer[] goldSeq = new Integer[sequenceLength];
-            Integer[] otehrSeq = new Integer[sequenceLength];
-
-            SeqLoss seqLoss = SeqLoss.getLoss(lossType);
-
-            return seqLoss.compute(goldSeq, otehrSeq, classAlphabet.getNoneOfTheAboveClassIndex());
-        }
+    public Integer[] asIntArray() {
+        int[] bestSolution = solution[0];
+        return IntStream.range(0, bestSolution.length).mapToObj(solutionIndex -> bestSolution[solutionIndex])
+                .toArray(Integer[]::new);
     }
 
-    public double fLoss(SequenceSolution otherSolution) {
-        int tp = 0;
-        int numGold = 0;
-        int numSys = 0;
-
-        int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
-
-        for (int i = 0; i < sequenceLength; i++) {
-            if (getClassAt(i) != otherClass) {
-                numGold += 1;
-                if (otherSolution.getClassAt(i) == getClassAt(i)) {
-                    tp += 1;
-                }
-            }
-
-            if (otherSolution.getClassAt(i) != otherClass) {
-                numSys += 1;
-            }
-        }
-
-        double precision = numSys > 0 ? tp * 1.0 / numSys : 1;
-        double recall = numGold > 0 ? tp * 1.0 / numGold : 1;
-
-        double f1 = precision + recall == 0 ? 0 : 2 * precision * recall / (precision + recall);
-
-        return 1 - f1;
-    }
-
-    public double hammingLoss(SequenceSolution otherSolution) {
-        double hamming = 0;
-        for (int i = 0; i < sequenceLength; i++) {
-            if (getClassAt(i) != otherSolution.getClassAt(i)) {
-                hamming++;
-            }
-        }
-        return hamming;
-    }
-
-    public double recallHammingLoss(SequenceSolution otherSolution) {
-        double hamming = 0;
-        double recallPenalty = 2;
-
-        int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
-
-        for (int i = 0; i < sequenceLength; i++) {
-            if (getClassAt(i) != otherSolution.getClassAt(i)) {
-                if (getClassAt(i) != otherClass) {
-                    hamming += recallPenalty;
-                } else {
-                    hamming++;
-                }
-            }
-        }
-        return hamming;
-    }
-
+//
+//    public double fLoss(SequenceSolution otherSolution) {
+//        int tp = 0;
+//        int numGold = 0;
+//        int numSys = 0;
+//
+//        int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
+//
+//        for (int i = 0; i < sequenceLength; i++) {
+//            if (getClassAt(i) != otherClass) {
+//                numGold += 1;
+//                if (otherSolution.getClassAt(i) == getClassAt(i)) {
+//                    tp += 1;
+//                }
+//            }
+//
+//            if (otherSolution.getClassAt(i) != otherClass) {
+//                numSys += 1;
+//            }
+//        }
+//
+//        double precision = numSys > 0 ? tp * 1.0 / numSys : 1;
+//        double recall = numGold > 0 ? tp * 1.0 / numGold : 1;
+//
+//        double f1 = precision + recall == 0 ? 0 : 2 * precision * recall / (precision + recall);
+//
+//        return 1 - f1;
+//    }
+//
+//    public double hammingLoss(SequenceSolution otherSolution) {
+//        double hamming = 0;
+//        for (int i = 0; i < sequenceLength; i++) {
+//            if (getClassAt(i) != otherSolution.getClassAt(i)) {
+//                hamming++;
+//            }
+//        }
+//        return hamming;
+//    }
+//
+//    public double recallHammingLoss(SequenceSolution otherSolution) {
+//        double hamming = 0;
+//        double recallPenalty = 2;
+//
+//        int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
+//
+//        for (int i = 0; i < sequenceLength; i++) {
+//            if (getClassAt(i) != otherSolution.getClassAt(i)) {
+//                if (getClassAt(i) != otherClass) {
+//                    hamming += recallPenalty;
+//                } else {
+//                    hamming++;
+//                }
+//            }
+//        }
+//        return hamming;
+//    }
 
     protected void setScore(double score) {
         this.score = score;

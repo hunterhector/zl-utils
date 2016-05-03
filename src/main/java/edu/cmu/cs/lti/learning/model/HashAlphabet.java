@@ -83,7 +83,7 @@ public class HashAlphabet extends FeatureAlphabet {
         if (storeReadable) {
             TObjectIntMap counter = featureCounters[featureIndex];
             if (counter == null) {
-                return "<NOT_FOUND>";
+                return null;
             }
             return counter.toString();
         } else {
@@ -136,7 +136,12 @@ public class HashAlphabet extends FeatureAlphabet {
 
     @Override
     public String getFeatureNameRepre(int featureIndex) {
-        return getMappedFeatureCounters(featureIndex);
+        String counter = getMappedFeatureCounters(featureIndex);
+        if (counter == null) {
+            return getMappedFeatureCounters(featureIndex);
+        } else {
+            return "<NOT_FOUND>";
+        }
     }
 
     public int getAlphabetSize() {

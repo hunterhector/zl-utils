@@ -3,6 +3,7 @@ package edu.cmu.cs.lti.learning.training;
 import com.google.common.collect.HashBasedTable;
 import edu.cmu.cs.lti.learning.ChainFeatureExtractor;
 import edu.cmu.cs.lti.learning.model.*;
+import edu.cmu.cs.lti.learning.update.SeqLoss;
 import edu.cmu.cs.lti.learning.utils.CubicLagrangian;
 import edu.cmu.cs.lti.utils.DebugUtils;
 import gnu.trove.map.TIntObjectMap;
@@ -27,7 +28,9 @@ public class AveragePerceptronTrainer {
     private SequenceDecoder decoder;
     private GraphWeightVector weightVector;
     private double defaultStepSize;
+    private ClassAlphabet classAlphabet;
     private boolean passiveAggressive;
+    private SeqLoss seqLoss;
 
     /**
      * A vanilla average perceptron, with a fixed step size.
@@ -37,21 +40,27 @@ public class AveragePerceptronTrainer {
      * @param featureAlphabet   The alphabet of features.
      * @param featureSpec       The feature specifications.
      * @param passiveAggressive Whether to use passive aggressive.
+     * @param lossType
      */
     public AveragePerceptronTrainer(SequenceDecoder decoder, ClassAlphabet classAlphabet,
-                                    FeatureAlphabet featureAlphabet, String featureSpec, boolean passiveAggressive) {
+                                    FeatureAlphabet featureAlphabet, String featureSpec, boolean passiveAggressive,
+                                    String lossType) {
+
         this.decoder = decoder;
         weightVector = new GraphWeightVector(classAlphabet, featureAlphabet, featureSpec);
         this.defaultStepSize = 0.1;
         this.passiveAggressive = passiveAggressive;
+        this.classAlphabet = classAlphabet;
+        seqLoss = SeqLoss.getLoss(lossType);
     }
 
     public double trainNext(SequenceSolution goldSolution, GraphFeatureVector goldFv, ChainFeatureExtractor
             extractor, CubicLagrangian u, CubicLagrangian v, TIntObjectMap<Pair<FeatureVector,
-            HashBasedTable<Integer, Integer, FeatureVector>>> featureCache, String lossType) {
+            HashBasedTable<Integer, Integer, FeatureVector>>> featureCache) {
         decoder.decode(extractor, weightVector, goldSolution.getSequenceLength(), u, v, featureCache);
         SequenceSolution prediction = decoder.getDecodedPrediction();
-        double loss = goldSolution.loss(prediction, lossType);
+        double loss = seqLoss.compute(goldSolution.asIntArray(), prediction.asIntArray(),
+                classAlphabet.getNoneOfTheAboveClassIndex());
 
 //        logger.debug("Prediction: ");
 //        logger.debug(prediction.toString());

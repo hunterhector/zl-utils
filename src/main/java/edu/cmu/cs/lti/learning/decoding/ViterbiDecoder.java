@@ -15,8 +15,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.BiFunction;
 
 /**
@@ -38,9 +36,6 @@ public class ViterbiDecoder extends SequenceDecoder {
     private CubicLagrangian dummyLagrangian = new DummyCubicLagrangian();
 
     private ArrayListMultimap<Integer, Integer> constraints;
-
-    // Do not use any global feature for a viterbi decoder.
-    Map<Integer, Integer> knownStates = new HashMap<>();
 
     public ViterbiDecoder(FeatureAlphabet featureAlphabet, ClassAlphabet classAlphabet) {
         this(featureAlphabet, classAlphabet, false, ArrayListMultimap.create());
@@ -76,7 +71,7 @@ public class ViterbiDecoder extends SequenceDecoder {
                        CubicLagrangian u, CubicLagrangian v,
                        TIntObjectMap<Pair<FeatureVector, HashBasedTable<Integer, Integer, FeatureVector>>> featureCache,
                        boolean useAverage) {
-        solution = new SequenceSolution(classAlphabet, sequenceLength, kBest);
+        solution = new SequenceSolution(classAlphabet, sequenceLength , kBest);
 
         // Dot product function on the node (i.e. only take features depend on current class)
         BiFunction<FeatureVector, Integer, Double> nodeDotProd = useAverage ?
@@ -147,8 +142,11 @@ public class ViterbiDecoder extends SequenceDecoder {
                 // Check which previous state gives the best score.
                 solution.getPreviousPossibleClassIndices().forEach(prevState -> {
                     for (SequenceSolution.LatticeCell previousBest : solution.getPreviousBests(prevState)) {
-                        double newEdgeScore = edgeDotProd.apply(edgeFeatures.get(prevState, classIndex),
-                                classIndex, prevState);
+                        double newEdgeScore = 0;
+                        if (edgeFeatures.contains(prevState, classIndex)) {
+                            FeatureVector edgeFeature = edgeFeatures.get(prevState, classIndex);
+                            newEdgeScore = edgeDotProd.apply(edgeFeature, classIndex, prevState);
+                        }
 
                         int addResult = solution.scoreNewEdge(classIndex, previousBest, newEdgeScore, newNodeScore);
                         if (addResult == 1) {
@@ -170,7 +168,10 @@ public class ViterbiDecoder extends SequenceDecoder {
                 // Taking features from previous best cell.
                 currentFeatureVectors[classIndex].extend(previousColFeatureVectors[bestPrev]);
                 // Adding features for the edge.
-                currentFeatureVectors[classIndex].extend(edgeFeatures.get(bestPrev, classIndex), classIndex, bestPrev);
+                if (edgeFeatures.contains(bestPrev, classIndex)) {
+                    currentFeatureVectors[classIndex].extend(edgeFeatures.get(bestPrev, classIndex), classIndex,
+                            bestPrev);
+                }
             });
         }
         solution.backTrace();
@@ -219,6 +220,10 @@ public class ViterbiDecoder extends SequenceDecoder {
             int classIndex = solution.getClassAt(solutionIndex);
 
             fv.extend(nodeFeatures, classIndex);
+
+            int prevClass = solution.getClassAt(solutionIndex);
+
+            fv.extend(nodeFeatures, prevClass, classIndex);
         }
         return fv;
     }
