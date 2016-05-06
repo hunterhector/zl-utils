@@ -23,7 +23,7 @@ public class MultiNodeKey implements Iterable<NodeKey> {
 
     public static final String TYPE_ROOT = "ROOT";
 
-    static MultiNodeKey root;
+    private static MultiNodeKey root;
 
     static {
         NodeKey singleRoot = new NodeKey(0, 0, TYPE_ROOT, REALIS_ROOT, -1);

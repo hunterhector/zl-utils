@@ -1,11 +1,10 @@
 package edu.cmu.cs.lti.learning.model;
 
 import org.apache.commons.lang3.SerializationUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.Serializable;
+import java.io.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -16,6 +15,8 @@ import java.io.Serializable;
  */
 public abstract class FeatureAlphabet implements Serializable {
     private static final long serialVersionUID = -912015198635250229L;
+
+    protected transient Logger logger = LoggerFactory.getLogger(getClass());
 
     protected FeatureAlphabet() {
 
@@ -31,5 +32,10 @@ public abstract class FeatureAlphabet implements Serializable {
 
     public void write(File outputFile) throws FileNotFoundException {
         SerializationUtils.serialize(this, new FileOutputStream(outputFile));
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        logger = LoggerFactory.getLogger(getClass());
     }
 }

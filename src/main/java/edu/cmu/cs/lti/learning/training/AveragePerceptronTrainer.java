@@ -5,7 +5,6 @@ import edu.cmu.cs.lti.learning.ChainFeatureExtractor;
 import edu.cmu.cs.lti.learning.model.*;
 import edu.cmu.cs.lti.learning.update.SeqLoss;
 import edu.cmu.cs.lti.learning.utils.CubicLagrangian;
-import edu.cmu.cs.lti.utils.DebugUtils;
 import gnu.trove.map.TIntObjectMap;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -82,7 +81,7 @@ public class AveragePerceptronTrainer {
             }
         }
 
-        DebugUtils.pause(logger);
+//        DebugUtils.pause(logger);
 
         return loss;
     }

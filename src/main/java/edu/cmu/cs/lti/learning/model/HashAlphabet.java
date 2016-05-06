@@ -6,8 +6,6 @@ import com.google.common.hash.Hashing;
 import gnu.trove.TCollections;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
@@ -17,8 +15,6 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
  * @author Zhengzhong Liu
  */
 public class HashAlphabet extends FeatureAlphabet {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
     private static final long serialVersionUID = 8684276781666018103L;
 
     private final HashFunction hasher = Hashing.murmur3_32();
@@ -137,8 +133,8 @@ public class HashAlphabet extends FeatureAlphabet {
     @Override
     public String getFeatureNameRepre(int featureIndex) {
         String counter = getMappedFeatureCounters(featureIndex);
-        if (counter == null) {
-            return getMappedFeatureCounters(featureIndex);
+        if (counter != null) {
+            return counter;
         } else {
             return "<NOT_FOUND>";
         }
