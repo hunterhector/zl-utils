@@ -12,14 +12,14 @@ public class NodeKey implements Comparable<NodeKey> {
     private int end;
     private String realis;
     private String mentionType;
-    private int index;
+    private int candidateIndex;
 
-    public NodeKey(int begin, int end, String mentionType, String realis, int index) {
+    public NodeKey(int begin, int end, String mentionType, String realis, int candidateIndex) {
         this.begin = begin;
         this.end = end;
         this.mentionType = mentionType;
         this.realis = realis;
-        this.index = index;
+        this.candidateIndex = candidateIndex;
     }
 
     public int hashCode() {
@@ -53,16 +53,16 @@ public class NodeKey implements Comparable<NodeKey> {
         return mentionType;
     }
 
-    public int getIndex() {
-        return index;
+    public int getCandidateIndex() {
+        return candidateIndex;
     }
 
     public String toString() {
-        return String.format("[Node]_[%d:%d]_[%s,%s]", begin, end, realis, mentionType);
+        return String.format("[Node]_[%d:%d]_[%s,%s]@%d", begin, end, realis, mentionType, candidateIndex);
     }
 
     @Override
     public int compareTo(NodeKey o) {
-        return new CompareToBuilder().append(index, o.index).build();
+        return new CompareToBuilder().append(candidateIndex, o.candidateIndex).build();
     }
 }

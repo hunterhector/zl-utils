@@ -19,6 +19,10 @@ public class EdgeKey implements Comparable<EdgeKey> {
     private EdgeType type;
 
     public EdgeKey(NodeKey depNode, NodeKey govNode, EdgeType type) {
+        if (depNode == null || govNode == null || type == null) {
+            throw new IllegalArgumentException("Keys and types cannot be null");
+        }
+
         this.depNode = depNode;
         this.govNode = govNode;
         this.type = type;
