@@ -10,6 +10,28 @@ import java.util.List;
  * Time: 2:24 PM
  */
 public class MathUtils {
+    public static int approxCompare(double a, double b) {
+        if (almostEqual(a, b)) {
+            return 0;
+        } else if (a > b) {
+            return 1;
+        } else {
+            return -1;
+        }
+    }
+
+    public static boolean sureLarger(double a, double b) {
+        return !almostEqual(a, b) && a > b;
+    }
+
+    public static boolean almostEqual(double a, double b) {
+        return Math.abs(a - b) < 1e-11;
+    }
+
+    public static boolean almostLeq(double a, double b) {
+        return sureLarger(a, b) || almostEqual(a, b);
+    }
+
     public static List<int[]> getCombination(int chooseN, int fromM) {
         System.out.println("choose " + chooseN + " from " + fromM);
         byte[] bits = new byte[fromM];

@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
  * @author Zhengzhong Liu
  */
 public class TrainingStats {
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+
     private int numInstanceProcessed = 0;
 
     private int averageLossOverN;
@@ -25,12 +27,14 @@ public class TrainingStats {
 
     public TrainingStats(int averageLossOverN) {
         this.averageLossOverN = averageLossOverN;
+        logger.info("Training stats will be output every " + averageLossOverN + " times");
         reset();
     }
 
     public TrainingStats(int averageLossOverN, String name) {
         this.averageLossOverN = averageLossOverN;
         this.name = name;
+        logger.info("Training stats will be output every " + averageLossOverN + " times");
         reset();
     }
 

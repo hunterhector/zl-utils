@@ -12,7 +12,7 @@ public class NodeKey implements Comparable<NodeKey> {
     private int end;
     private String realis;
     private String mentionType;
-    private int candidateIndex;
+    private final int candidateIndex;
 
     public NodeKey(int begin, int end, String mentionType, String realis, int candidateIndex) {
         this.begin = begin;
@@ -64,5 +64,9 @@ public class NodeKey implements Comparable<NodeKey> {
     @Override
     public int compareTo(NodeKey o) {
         return new CompareToBuilder().append(candidateIndex, o.candidateIndex).build();
+    }
+
+    public boolean isRoot() {
+        return candidateIndex == -1;
     }
 }
