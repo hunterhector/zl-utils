@@ -212,6 +212,15 @@ public class GraphFeatureVector implements Serializable {
      * @return The L2 norm of the feature vector.
      */
     public double getFeatureL2() {
+        return Math.sqrt(getFeatureSquare());
+    }
+
+    /**
+     * Compute the square of the feature vector.
+     *
+     * @return The square (L2 ^ 2) of the feature vector.
+     */
+    public double getFeatureSquare() {
         double l2Sq = 0;
 
         for (TIntObjectIterator<FeatureVector> iter = nodeFvIter(); iter.hasNext(); ) {
@@ -226,7 +235,7 @@ public class GraphFeatureVector implements Serializable {
             l2Sq += fv.dotProd(fv);
         }
 
-        return Math.sqrt(l2Sq);
+        return l2Sq;
     }
 
     public String readableNodeVector() {

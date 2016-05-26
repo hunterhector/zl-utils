@@ -164,10 +164,12 @@ public abstract class FeatureVector implements Serializable {
         while (iter.hasNext()) {
             iter.next();
             double featureValue = iter.featureValue();
-            features.append(sep);
-            features.append(String.format("%d %s : %.2f", iter.featureIndex(), alphabet.getFeatureNameRepre(iter
-                    .featureIndex()), featureValue));
-            sep = separator;
+            if (featureValue != 0) {
+                features.append(sep);
+                features.append(String.format("%d %s : %.2f", iter.featureIndex(), alphabet.getFeatureNameRepre(iter
+                        .featureIndex()), featureValue));
+                sep = separator;
+            }
         }
 
         return features.toString();
