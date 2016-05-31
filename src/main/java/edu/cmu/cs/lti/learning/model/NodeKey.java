@@ -4,10 +4,14 @@ import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+import java.io.Serializable;
+
 /**
  * Represent possible node that can be associated on a mention candidate.
  */
-public class NodeKey implements Comparable<NodeKey> {
+public class NodeKey implements Comparable<NodeKey>, Serializable {
+    private static final long serialVersionUID = 3461806692881235291L;
+
     private int begin;
     private int end;
     private String realis;

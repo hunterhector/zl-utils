@@ -3,6 +3,8 @@ package edu.cmu.cs.lti.learning.model;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import org.apache.commons.lang3.SerializationUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -19,6 +21,8 @@ import java.util.stream.IntStream;
  */
 public class ClassAlphabet implements Serializable {
     private static final long serialVersionUID = -4677347415571534910L;
+
+    private transient final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String noneOfTheAboveClass = "NONE";
 
@@ -113,6 +117,7 @@ public class ClassAlphabet implements Serializable {
             return classIndices.get(className);
         } else {
             if (className != null) {
+//                throw new IllegalArgumentException("What if it is not allowed.");
                 return addClass(className);
             } else {
                 throw new IllegalArgumentException("Class Name cannot be null.");

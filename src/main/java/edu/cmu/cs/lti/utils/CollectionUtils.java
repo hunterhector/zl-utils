@@ -30,4 +30,36 @@ public class CollectionUtils {
 
         return resultBigrams;
     }
+
+    public static <E> List<List<E>> cartesian(List<List<E>> lists) {
+        if (lists.size() == 0) {
+            return new ArrayList<>();
+        }
+        if (lists.size() == 1) {
+            List<List<E>> result = new ArrayList<>();
+            for (E e : lists.get(0)) {
+                ArrayList<E> l = new ArrayList<>();
+                l.add(e);
+                result.add(l);
+            }
+            return result;
+        }
+
+        return cartesian(0, lists);
+    }
+
+    private static <E> List<List<E>> cartesian(int index, List<List<E>> lists) {
+        List<List<E>> result = new ArrayList<>();
+        if (index == lists.size()) {
+            result.add(new ArrayList<>());
+        } else {
+            for (E e : lists.get(index)) {
+                for (List<E> list : cartesian(index + 1, lists)) {
+                    list.add(e);
+                    result.add(list);
+                }
+            }
+        }
+        return result;
+    }
 }

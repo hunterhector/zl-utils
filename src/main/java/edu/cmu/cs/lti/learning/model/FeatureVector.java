@@ -20,7 +20,7 @@ public abstract class FeatureVector implements Serializable {
 
     private transient Logger logger = LoggerFactory.getLogger(getClass());
 
-    protected FeatureAlphabet alphabet;
+    protected transient FeatureAlphabet alphabet;
 
     protected int featureSize;
 
@@ -154,6 +154,29 @@ public abstract class FeatureVector implements Serializable {
         return readableString("\n");
     }
 
+    public String matcheRadableString(String separator, String str) {
+        StringBuilder features = new StringBuilder();
+        FeatureIterator iter = featureIterator();
+
+        features.append("[Feature Vector] ").append(this.getClass().getSimpleName());
+
+        String sep = separator;
+        while (iter.hasNext()) {
+            iter.next();
+            double featureValue = iter.featureValue();
+            if (featureValue != 0) {
+                String nameRepre = alphabet.getFeatureNameRepre(iter.featureIndex());
+                if (nameRepre.contains(str)) {
+                    features.append(sep);
+                    features.append(String.format("%d %s : %.2f", iter.featureIndex(), nameRepre, featureValue));
+                    sep = separator;
+                }
+            }
+        }
+
+        return features.toString();
+    }
+
     public String readableString(String separator) {
         StringBuilder features = new StringBuilder();
         FeatureIterator iter = featureIterator();
@@ -195,5 +218,9 @@ public abstract class FeatureVector implements Serializable {
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
         logger = LoggerFactory.getLogger(getClass());
+    }
+
+    public void setAlpabhet(FeatureAlphabet alphabet) {
+        this.alphabet = alphabet;
     }
 }

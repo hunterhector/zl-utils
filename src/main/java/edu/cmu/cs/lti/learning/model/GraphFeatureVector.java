@@ -250,6 +250,18 @@ public class GraphFeatureVector implements Serializable {
         return sb.toString();
     }
 
+    public String matchNodeVector(String str) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Node Vector:");
+        for (TIntObjectIterator<FeatureVector> iter = nodeFvIter(); iter.hasNext(); ) {
+            iter.advance();
+            sb.append("\n###### Feature at class ").append(classAlphabet.getClassName(iter.key())).append("\n");
+            sb.append(iter.value().matcheRadableString("\n", str));
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
     public String readableEdgeVector() {
         StringBuilder sb = new StringBuilder();
         sb.append("Edge Vector:");
