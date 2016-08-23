@@ -256,7 +256,7 @@ public class GraphFeatureVector implements Serializable {
         for (TIntObjectIterator<FeatureVector> iter = nodeFvIter(); iter.hasNext(); ) {
             iter.advance();
             sb.append("\n###### Feature at class ").append(classAlphabet.getClassName(iter.key())).append("\n");
-            sb.append(iter.value().matcheRadableString("\n", str));
+            sb.append(iter.value().matchReadableString("\n", str));
             sb.append("\n");
         }
         return sb.toString();

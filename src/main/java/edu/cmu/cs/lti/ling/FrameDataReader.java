@@ -182,8 +182,41 @@ public class FrameDataReader {
         return vn2pb;
     }
 
+    public static Table<String, String, String> getFrameOnlyRelations(String fnRelatonPath) {
+        Table<String, String, String> frameRelationTable = HashBasedTable.create();
+
+        try {
+            SAXBuilder builder = new SAXBuilder();
+            builder.setDTDHandler(null);
+
+            Document doc = builder.build(fnRelatonPath);
+
+            Element data = doc.getRootElement();
+
+            Namespace ns = data.getNamespace();
+
+            List<Element> relationTypeGroup = data.getChildren("frameRelationType", ns);
+
+            for (Element relationsByType : relationTypeGroup) {
+                String relationType = relationsByType.getAttributeValue("name");
+
+                List<Element> frameRelations = relationsByType.getChildren("frameRelation", ns);
+                for (Element frameRelation : frameRelations) {
+                    String subFrameName = frameRelation.getAttributeValue("subFrameName");
+                    String superFrameName = frameRelation.getAttributeValue("superFrameName");
+
+                    frameRelationTable.put(superFrameName, subFrameName, relationType);
+                }
+            }
+        } catch (IOException | JDOMException e) {
+            e.printStackTrace();
+        }
+
+        return frameRelationTable;
+    }
+
     // The following methods wraps methods to read data from FrameNet relations
-    public static Map<String, Table<String, String, Map<String, String>>> getFrameRelations(
+    public static Map<String, Table<String, String, Map<String, String>>> getFullFrameRelations(
             String fnRelatonPath) {
 
         Map<String, Table<String, String, Map<String, String>>> frameRelationMappings = new HashMap<String, Table<String, String, Map<String, String>>>();

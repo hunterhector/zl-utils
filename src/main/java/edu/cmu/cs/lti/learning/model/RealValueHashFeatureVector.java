@@ -1,5 +1,6 @@
 package edu.cmu.cs.lti.learning.model;
 
+import gnu.trove.TCollections;
 import gnu.trove.iterator.TIntDoubleIterator;
 import gnu.trove.map.TIntDoubleMap;
 import gnu.trove.map.hash.TIntDoubleHashMap;
@@ -18,7 +19,7 @@ public class RealValueHashFeatureVector extends FeatureVector {
 
     public RealValueHashFeatureVector(FeatureAlphabet alphabet) {
         super(alphabet);
-        fv = new TIntDoubleHashMap();
+        fv = TCollections.synchronizedMap(new TIntDoubleHashMap());
     }
 
     @Override

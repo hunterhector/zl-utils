@@ -2,8 +2,6 @@ package edu.cmu.cs.lti.learning.model;
 
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -17,8 +15,6 @@ import java.io.Serializable;
  */
 public abstract class FeatureVector implements Serializable {
     private static final long serialVersionUID = -6736949803936456446L;
-
-    private transient Logger logger = LoggerFactory.getLogger(getClass());
 
     protected transient FeatureAlphabet alphabet;
 
@@ -154,7 +150,7 @@ public abstract class FeatureVector implements Serializable {
         return readableString("\n");
     }
 
-    public String matcheRadableString(String separator, String str) {
+    public String matchReadableString(String separator, String str) {
         StringBuilder features = new StringBuilder();
         FeatureIterator iter = featureIterator();
 
@@ -217,7 +213,6 @@ public abstract class FeatureVector implements Serializable {
 
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
-        logger = LoggerFactory.getLogger(getClass());
     }
 
     public void setAlpabhet(FeatureAlphabet alphabet) {
