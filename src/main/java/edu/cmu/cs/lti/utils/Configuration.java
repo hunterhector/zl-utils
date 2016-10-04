@@ -3,10 +3,7 @@ package edu.cmu.cs.lti.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -37,7 +34,7 @@ public class Configuration {
             throw new FileNotFoundException("Cannot read config file at : " + configurationFile.getCanonicalPath());
         }
         properties = new Properties();
-        properties.load(new FileInputStream(configurationFile));
+        properties.load(new InputStreamReader(new FileInputStream(configurationFile), "UTF-8"));
 
         this.configFile = configurationFile;
     }

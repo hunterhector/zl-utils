@@ -17,7 +17,10 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
     // Individual update count of this vector.
     private int averageUpdateCount;
 
+    // Weights vector hold all normal weights.
     private TIntDoubleMap weights;
+
+    // Average weight vector actually holds sum of weights, unless "consolidated".
     private TIntDoubleMap averagedWeights;
 
     private boolean consolidated;
@@ -44,6 +47,10 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
     }
 
     @Override
+    /**
+     * Add the weights of to the average weights. This should be done once weight vector is updated. The calling time
+     * is to be determined by the update algorithm.
+     */
     public void updateAverageWeight() {
         for (TIntDoubleIterator iter = weights.iterator(); iter.hasNext(); ) {
             iter.advance();
@@ -56,26 +63,41 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
 
     @Override
     void consolidate() {
+//        int numRemoved = 0;
+//        int total = 0;
         if (!consolidated) {
-            if (averageUpdateCount != 0) {
-                for (TIntDoubleIterator iter = averagedWeights.iterator(); iter.hasNext(); ) {
-                    iter.advance();
-                    if (iter.value() == 0) {
-                        iter.remove();
-                    } else {
-                        iter.setValue(iter.value() / averageUpdateCount);
+            for (TIntDoubleIterator iter = weights.iterator(); iter.hasNext(); ) {
+                iter.advance();
+                if (iter.value() == 0) {
+                    iter.remove();
+//                    numRemoved++;
+                }
+//                total++;
+            }
 
+            for (TIntDoubleIterator iter = averagedWeights.iterator(); iter.hasNext(); ) {
+                iter.advance();
+                if (iter.value() == 0) {
+                    iter.remove();
+                } else {
+                    if (averageUpdateCount != 0) {
+                        // Turn sum of weights to average of weights.
+                        iter.setValue(iter.value() / averageUpdateCount);
                     }
                 }
             }
             consolidated = true;
         }
+//        System.out.println(String.format("Found %d zero features and removed.", numRemoved));
+//        System.out.println(String.format("Total visited %d.", total));
+//        System.out.println(String.format("Size after is " + averagedWeights.size()) + " " + weights.size());
     }
 
     @Override
     void deconsolidate() {
         if (consolidated) {
             if (averageUpdateCount != 0) {
+                // Turn average weights back to sum of weights.
                 for (TIntDoubleIterator iter = averagedWeights.iterator(); iter.hasNext(); ) {
                     iter.advance();
                     iter.setValue(iter.value() * averageUpdateCount);
@@ -102,5 +124,9 @@ public class HashBasedAveragedWeightVector extends AveragedWeightVector {
 
     public TIntDoubleIterator getWeightsIterator() {
         return weights.iterator();
+    }
+
+    public TIntDoubleIterator getAverageWeightsIterator() {
+        return averagedWeights.iterator();
     }
 }

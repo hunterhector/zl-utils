@@ -4,6 +4,7 @@ import edu.cmu.cs.lti.learning.model.AveragedWeightVector;
 import edu.cmu.cs.lti.learning.model.ClassAlphabet;
 import edu.cmu.cs.lti.learning.model.GraphWeightVector;
 import edu.cmu.cs.lti.learning.model.HashAlphabet;
+import gnu.trove.iterator.TIntDoubleIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.tuple.Triple;
@@ -19,7 +20,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
-import java.util.function.Function;
 
 /**
  * Created with IntelliJ IDEA.
@@ -63,7 +63,7 @@ public class HashedFeatureInspector {
         for (Iterator<Triplet<Integer, Integer, AveragedWeightVector>> iter = weightVector.edgeWeightIterator(); iter
                 .hasNext(); ) {
             Triplet<Integer, Integer, AveragedWeightVector> r = iter.next();
-            loadFeatures(r.getValue2()::getAverageWeightAt, r.getValue0(), r.getValue1(), topK, k);
+            loadFeatures(r.getValue2().getAverageWeightsIterator(), r.getValue0(), r.getValue1(), topK, k);
         }
         return topK;
     }
@@ -72,7 +72,7 @@ public class HashedFeatureInspector {
         PriorityQueue<Triple<Integer, String, Double>> topK = new PriorityQueue<>(k, comp);
         for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext(); ) {
             Pair<Integer, AveragedWeightVector> r = iter.next();
-            loadFeatures(r.getValue1()::getAverageWeightAt, r.getValue0(), topK, k);
+            loadFeatures(r.getValue1().getAverageWeightsIterator(), r.getValue0(), topK, k);
         }
         return topK;
     }
@@ -81,7 +81,7 @@ public class HashedFeatureInspector {
         PriorityQueue<Triple<Integer, String, Double>> topK = new PriorityQueue<>(k, comp);
         for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext(); ) {
             Pair<Integer, AveragedWeightVector> r = iter.next();
-            loadFeatures(r.getValue1()::getWeightAt, r.getValue0(), topK, k);
+            loadFeatures(r.getValue1().getWeightsIterator(), r.getValue0(), topK, k);
         }
         return topK;
     }
@@ -91,7 +91,7 @@ public class HashedFeatureInspector {
         for (Iterator<Triplet<Integer, Integer, AveragedWeightVector>> iter = weightVector.edgeWeightIterator(); iter
                 .hasNext(); ) {
             Triplet<Integer, Integer, AveragedWeightVector> r = iter.next();
-            loadFeatures(r.getValue2()::getAverageWeightAt, r.getValue0(), r.getValue1(), all, -1);
+            loadFeatures(r.getValue2().getAverageWeightsIterator(), r.getValue0(), r.getValue1(), all, -1);
         }
         return all;
     }
@@ -100,7 +100,7 @@ public class HashedFeatureInspector {
         PriorityQueue<Triple<Integer, String, Double>> all = new PriorityQueue<>();
         for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext(); ) {
             Pair<Integer, AveragedWeightVector> r = iter.next();
-            loadFeatures(r.getValue1()::getAverageWeightAt, r.getValue0(), all, -1);
+            loadFeatures(r.getValue1().getAverageWeightsIterator(), r.getValue0(), all, -1);
         }
         return all;
     }
@@ -109,18 +109,20 @@ public class HashedFeatureInspector {
         PriorityQueue<Triple<Integer, String, Double>> all = new PriorityQueue<>();
         for (Iterator<Pair<Integer, AveragedWeightVector>> iter = weightVector.nodeWeightIterator(); iter.hasNext(); ) {
             Pair<Integer, AveragedWeightVector> r = iter.next();
-            loadFeatures(r.getValue1()::getWeightAt, r.getValue0(), all, -1);
+            loadFeatures(r.getValue1().getWeightsIterator(), r.getValue0(), all, -1);
         }
         return all;
     }
 
-    private void loadFeatures(Function<Integer, Double> getWeights, int classIndex,
-                              PriorityQueue<Triple<Integer, String, Double>> features, int k) {
-        for (int i = 0; i < weightVector.getFeatureDimension(); i++) {
-            double weight = getWeights.apply(i);
-            if (featureAlphabet.getMappedFeatureCounters(i) != null) {
-                features.add(Triple.of(i, classAlphabet.getClassName(classIndex) + "_" + featureAlphabet
-                        .getMappedFeatureCounters(i), weight));
+    private void loadFeatures(TIntDoubleIterator weightIter,
+                              int classIndex, PriorityQueue<Triple<Integer, String, Double>> features, int k) {
+        for (; weightIter.hasNext(); ) {
+            weightIter.advance();
+            int fIndex = weightIter.key();
+            double weight = weightIter.value();
+            if (featureAlphabet.getMappedFeatureCounters(fIndex) != null) {
+                features.add(Triple.of(fIndex, classAlphabet.getClassName(classIndex) + "_" + featureAlphabet
+                        .getMappedFeatureCounters(fIndex), weight));
             }
             if (k > 0 && features.size() > k) {
                 features.poll();
@@ -128,15 +130,17 @@ public class HashedFeatureInspector {
         }
     }
 
-    private void loadFeatures(Function<Integer, Double> getWeights, int nextClassIndex, int previousClassIndex,
+    private void loadFeatures(TIntDoubleIterator weightIter, int nextClassIndex, int previousClassIndex,
                               PriorityQueue<Triple<Integer, String, Double>> features, int k) {
-        for (int i = 0; i < weightVector.getFeatureDimension(); i++) {
-            double weight = getWeights.apply(i);
+        for (; weightIter.hasNext();) {
+            weightIter.advance();
+            int fIndex = weightIter.key();
+            double weight = weightIter.value();
             if (weight != 0) {
-                if (featureAlphabet.getMappedFeatureCounters(i) != null) {
-                    features.add(Triple.of(i, classAlphabet.getClassName(previousClassIndex) + "->" +
+                if (featureAlphabet.getMappedFeatureCounters(fIndex) != null) {
+                    features.add(Triple.of(fIndex, classAlphabet.getClassName(previousClassIndex) + "->" +
                             classAlphabet.getClassName(nextClassIndex) + "_" +
-                            featureAlphabet.getMappedFeatureCounters(i), weight));
+                            featureAlphabet.getMappedFeatureCounters(fIndex), weight));
                 }
                 if (k > 0 && features.size() > k) {
                     features.poll();
@@ -159,11 +163,14 @@ public class HashedFeatureInspector {
         }
     }
 
-    public void writeInspects(File outputFile, PriorityQueue<Triple<Integer, String, Double>> features) throws
-            IOException {
+    public PriorityQueue<Triple<Integer, String, Double>> writeInspects(
+            File outputFile, PriorityQueue<Triple<Integer, String, Double>> features) throws IOException {
+        PriorityQueue<Triple<Integer, String, Double>> recreated = new PriorityQueue<>();
+
         LinkedList<String> lines = new LinkedList<>();
         while (!features.isEmpty()) {
             Triple<Integer, String, Double> feature = features.poll();
+            recreated.add(feature);
 //            if (feature.getRight() > 0) {
             lines.addFirst(String.format("%d\t%s\t%.8f",
                     feature.getLeft(), feature.getMiddle(), feature.getRight()));
@@ -171,6 +178,8 @@ public class HashedFeatureInspector {
         }
         lines.addFirst("Feature Id\tFeature Name\tFeature Weight");
         FileUtils.writeLines(outputFile, lines);
+
+        return recreated;
     }
 
     public static void main(String[] args) throws IOException {
@@ -183,11 +192,14 @@ public class HashedFeatureInspector {
 
         inspector.writeInspects(new File(outputDirectory, "top100Aver"), inspector.loadTopKAverageFeatures(100));
         inspector.writeInspects(new File(outputDirectory, "top100Final"), inspector.loadTopKFinalFeatures(100));
-        inspector.writeInspects(new File(outputDirectory, "allAver"), inspector.loadAllAverageFeatures());
-        inspector.writeInspects(new File(outputDirectory, "allFinal"), inspector.loadAllFinalFeatures());
-
         inspector.writeInspects(new File(outputDirectory, "top100AverState"), inspector.loadTopKAverageStateFeatures
                 (100));
+
+        PriorityQueue<Triple<Integer, String, Double>> allAverage = inspector.loadAllAverageFeatures();
+        PriorityQueue<Triple<Integer, String, Double>> allFinal = inspector.loadAllFinalFeatures();
+
+        inspector.writeInspects(new File(outputDirectory, "allAver"), allAverage);
+        inspector.writeInspects(new File(outputDirectory, "allFinal"), allFinal);
         inspector.writeInspects(new File(outputDirectory, "allAverState"), inspector.loadAllAverageStateFeatures());
 
     }

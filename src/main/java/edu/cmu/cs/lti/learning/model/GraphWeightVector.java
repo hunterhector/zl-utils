@@ -11,10 +11,7 @@ import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.util.Iterator;
 import java.util.function.Consumer;
 
@@ -213,18 +210,37 @@ public class GraphWeightVector implements Serializable {
         return prod;
     }
 
+    public double dotProdAverDebug(FeatureVector fv, String classLabel, Logger logger) {
+        AveragedWeightVector weights = getOrCreateNodeWeights(classAlphabet.getClassIndex(classLabel));
+        return weights.dotProdAverDebug(fv, logger);
+    }
+
     public void write(File outputFile) throws FileNotFoundException {
         consolidate();
         SerializationUtils.serialize(this, new FileOutputStream(outputFile));
         deconsolidate();
     }
 
-    private synchronized void consolidate() {
+    /**
+     * If you read the model for testing, it is OK to just deserialize it yourself. If you want to resume the
+     * training, you need to deconsolidate it to get average counts.
+     *
+     * @param inputFile
+     * @return
+     * @throws FileNotFoundException
+     */
+    public static GraphWeightVector read(File inputFile) throws FileNotFoundException {
+        GraphWeightVector wv = SerializationUtils.deserialize(new FileInputStream(inputFile));
+        wv.deconsolidate();
+        return wv;
+    }
+
+    protected synchronized void consolidate() {
         logger.info("Consolidating graph weights.");
         applyToAll(AveragedWeightVector::consolidate);
     }
 
-    public synchronized void deconsolidate() {
+    protected synchronized void deconsolidate() {
         logger.info("Deconsolidating graph weights.");
         applyToAll(AveragedWeightVector::deconsolidate);
     }

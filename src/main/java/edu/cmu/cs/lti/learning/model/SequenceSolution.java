@@ -118,8 +118,6 @@ public class SequenceSolution implements Serializable {
             outsideSet.add(indice);
         }
 
-        // TODO: it might be useless to start at -1.
-//        currentPosition = -1;
         currentPosition = 0;
     }
 
@@ -173,6 +171,7 @@ public class SequenceSolution implements Serializable {
 
     /**
      * When the iteration pointer is larger than the sequence length, i.e., after the sequence end outside position.
+     * This means we always read one more stop token after it.
      *
      * @return Whether the solution is finished.
      */

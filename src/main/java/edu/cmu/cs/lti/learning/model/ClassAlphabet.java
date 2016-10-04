@@ -73,6 +73,7 @@ public class ClassAlphabet implements Serializable {
         if (!classIndices.containsKey(className)) {
             classes.add(className);
             classIndices.put(className, index);
+            // TODO backoff is not necessary for all names.
             backoffClassNames.add(splitAsClassNames(className));
             index++;
         }
