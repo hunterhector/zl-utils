@@ -1,6 +1,7 @@
 package edu.cmu.cs.lti.learning.model;
 
 import com.google.common.collect.MinMaxPriorityQueue;
+import edu.cmu.cs.lti.dist.CommonDistributions;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 import org.apache.commons.lang3.builder.CompareToBuilder;
@@ -33,7 +34,7 @@ public class SequenceSolution implements Serializable {
     private int[][] solution;
 
     // Container for the scores at each step, the k-th row corresponding to k-th best solution.
-    // The score is the additional score given by each step, to get the solution score, sum them up.
+    // Element scores: the score is the additional score given by each step, to get the solution score, sum them up.
     private double[][] elementScores;
 
     // Each cells stores a list of best states that ended here, stored as a queue (heap).
@@ -44,7 +45,11 @@ public class SequenceSolution implements Serializable {
     private MinMaxPriorityQueue<LatticeCell>[] temporaryCells;
 
     // A full back pointer lattice that store all the cells, each cell store a list of k best back pointers.
+    // Some cells are empty because they are not possible: e.g. The first class is <OUTSIDE>, which is not possible for
+    // normal index, except the special ending index.
     private List<LatticeCell>[][] latticeCells;
+
+    private double[] softMaxLabelProbs;
 
     private int currentPosition;
 
@@ -110,6 +115,7 @@ public class SequenceSolution implements Serializable {
         this.sequenceLength = sequenceLength;
         solution = new int[bestK][sequenceLength];
         elementScores = new double[bestK][sequenceLength];
+
         temporaryCells = new MinMaxPriorityQueue[classAlphabet.size()];
         latticeCells = new List[sequenceLength + 1][classAlphabet.size()];
 
@@ -220,7 +226,6 @@ public class SequenceSolution implements Serializable {
                 latticeCells[currentPosition][classIndex] = new ArrayList<>();
                 while (!tempBackPointer.isEmpty()) {
                     latticeCells[currentPosition][classIndex].add(tempBackPointer.poll());
-//                System.out.println("Lattice cell at " + currentPosition + " " + classIndex + " updated.");
                 }
             });
         }
@@ -245,6 +250,13 @@ public class SequenceSolution implements Serializable {
      */
     public int getClassAt(int sequenceIndex) {
         return getClassAt(0, sequenceIndex);
+    }
+
+    /**
+     * @return Return the softmax based label probability prediction for the best solution.
+     */
+    public double[] getSoftMaxLabelProbs() {
+        return softMaxLabelProbs;
     }
 
     /**
@@ -311,17 +323,17 @@ public class SequenceSolution implements Serializable {
         String colSep = "";
 
         int rowNumber = 0;
-        for (List<LatticeCell>[] backPointer : latticeCells) {
+        for (List<LatticeCell>[] backPointers : latticeCells) {
             sb.append(colSep);
             sb.append(rowNumber++);
             sb.append(rowSep);
             colSep = "\n";
-            for (List<LatticeCell> aBackPointer : backPointer) {
+            for (List<LatticeCell> backPointer : backPointers) {
                 sb.append(rowSep);
-                if (aBackPointer == null) {
+                if (backPointer == null) {
                     sb.append("<EMPTY>");
                 } else {
-                    sb.append(aBackPointer.get(0).shortString());
+                    sb.append(backPointer.get(0).shortString());
                 }
             }
         }
@@ -329,11 +341,34 @@ public class SequenceSolution implements Serializable {
     }
 
     public void backTrace() {
+        softMaxLabelProbs = new double[sequenceLength];
+
         for (int kthSolution = 0; kthSolution < bestK; kthSolution++) {
             int[] oneSolution = new int[sequenceLength];
             double[] oneScores = new double[sequenceLength];
+
+            // Computing the best K solution by backtracing from the last cell. It will populated 2 arrays:
+            // 1. solution array: contains the solution class index of each position.
+            // 2. score array: contains the scores corresponding to each position.
             backTraceOne(latticeCells[sequenceLength][0].get(kthSolution), oneSolution, oneScores);
             solution[kthSolution] = oneSolution;
+
+            if (kthSolution == 0) {
+                for (int i = 0; i < oneSolution.length; i++) {
+                    int predictedClass = oneSolution[i];
+
+                    double[] scores = new double[classAlphabet.size()];
+                    for (int classIndex : classAlphabet.getNormalClassesRange().toArray()) {
+                        List<LatticeCell> backPointer = latticeCells[i][classIndex];
+                        double classScore = backPointer.get(0).score;
+                        scores[classIndex] = classScore;
+                    }
+
+                    double[] probs = CommonDistributions.softmax(scores);
+
+                    softMaxLabelProbs[i] = probs[predictedClass];
+                }
+            }
 
             for (int i = sequenceLength - 1; i > 0; i--) {
                 oneScores[i] = oneScores[i] - oneScores[i - 1];
@@ -341,6 +376,35 @@ public class SequenceSolution implements Serializable {
             elementScores[kthSolution] = oneScores;
         }
     }
+
+//    private double softMaxProb(int predictionIndex, double[] scores) {
+//        double rawScore = 0;
+//        double normalizer = 0;
+//
+//        logger.info("Computing probabily of index " + predictionIndex);
+//
+//        double max = Double.NEGATIVE_INFINITY;
+//        for (int i = 0; i < scores.length; i++) {
+//            if (scores[i] > max){
+//                max = scores[i];
+//            }
+//        }
+//
+//        for (int i = 0; i < scores.length; i++) {
+//            normalizer += Math.exp(scores[i] - max);
+//            if (predictionIndex == i) {
+//                rawScore += Math.exp(scores[i]);
+//            }
+//        }
+//
+//        logger.info("Unnormalized score is " + rawScore);
+//        logger.info("Normalizer is " + normalizer);
+//
+//        if (normalizer == 0) {
+//            return 0;
+//        }
+//        return rawScore / normalizer;
+//    }
 
     /**
      * Back trace starting from one particular cell.
@@ -354,7 +418,6 @@ public class SequenceSolution implements Serializable {
             currentCell = currentCell.backPointer;
             oneSolution[backCol] = currentCell.classIndex;
             oneScores[backCol] = currentCell.score;
-//            System.out.println("Class index at " + backCol + " is " + currentCell.getClassIndex());
         }
         return oneSolution;
     }
@@ -417,63 +480,6 @@ public class SequenceSolution implements Serializable {
         return IntStream.range(0, bestSolution.length).mapToObj(solutionIndex -> bestSolution[solutionIndex])
                 .toArray(Integer[]::new);
     }
-
-//
-//    public double fLoss(SequenceSolution otherSolution) {
-//        int tp = 0;
-//        int numGold = 0;
-//        int numSys = 0;
-//
-//        int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
-//
-//        for (int i = 0; i < sequenceLength; i++) {
-//            if (getClassAt(i) != otherClass) {
-//                numGold += 1;
-//                if (otherSolution.getClassAt(i) == getClassAt(i)) {
-//                    tp += 1;
-//                }
-//            }
-//
-//            if (otherSolution.getClassAt(i) != otherClass) {
-//                numSys += 1;
-//            }
-//        }
-//
-//        double precision = numSys > 0 ? tp * 1.0 / numSys : 1;
-//        double recall = numGold > 0 ? tp * 1.0 / numGold : 1;
-//
-//        double f1 = precision + recall == 0 ? 0 : 2 * precision * recall / (precision + recall);
-//
-//        return 1 - f1;
-//    }
-//
-//    public double hammingLoss(SequenceSolution otherSolution) {
-//        double hamming = 0;
-//        for (int i = 0; i < sequenceLength; i++) {
-//            if (getClassAt(i) != otherSolution.getClassAt(i)) {
-//                hamming++;
-//            }
-//        }
-//        return hamming;
-//    }
-//
-//    public double recallHammingLoss(SequenceSolution otherSolution) {
-//        double hamming = 0;
-//        double recallPenalty = 2;
-//
-//        int otherClass = classAlphabet.getNoneOfTheAboveClassIndex();
-//
-//        for (int i = 0; i < sequenceLength; i++) {
-//            if (getClassAt(i) != otherSolution.getClassAt(i)) {
-//                if (getClassAt(i) != otherClass) {
-//                    hamming += recallPenalty;
-//                } else {
-//                    hamming++;
-//                }
-//            }
-//        }
-//        return hamming;
-//    }
 
     protected void setScore(double score) {
         this.score = score;

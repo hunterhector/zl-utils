@@ -28,6 +28,8 @@ public class ClassAlphabet implements Serializable {
 
     public static final String outsideClass = "OUTSIDE";
 
+    private boolean withOutsideClass;
+
     private TObjectIntMap<String> classIndices = new TObjectIntHashMap<>();
     private ArrayList<String> classes;
     private ArrayList<List<String>> backoffClassNames;
@@ -49,6 +51,8 @@ public class ClassAlphabet implements Serializable {
         this.classes = new ArrayList<>();
         this.backoffClassNames = new ArrayList<>();
         index = 0;
+
+        this.withOutsideClass = withOutsideClass;
 
         if (withOutsideClass) {
             addClass(outsideClass);
@@ -148,7 +152,11 @@ public class ClassAlphabet implements Serializable {
     }
 
     public synchronized IntStream getNormalClassesRange() {
-        return IntStream.range(1, classes.size());
+        if (withOutsideClass) {
+            return IntStream.range(1, classes.size());
+        }else{
+            return IntStream.range(0, classes.size());
+        }
     }
 
     public IntStream getOutsideClassRange() {

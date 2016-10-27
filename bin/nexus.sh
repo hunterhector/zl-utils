@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+mvn deploy:deploy-file -DgroupId=edu.cmu.cs.lti -Dversion=0.0.2 -DartifactId=zl-utils -Dpackaging=jar -DgeneratePom=false -Durl=http://deftpack.bbn.com:8081/nexus/content/repositories/DEFTLibraryDependencies -DrepositoryId=DEFTLibraryDependencies -Dfile=target/zl-utils-0.0.2.jar -DpomFile=pom.xml

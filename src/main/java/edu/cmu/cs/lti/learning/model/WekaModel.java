@@ -76,11 +76,6 @@ public class WekaModel implements Serializable {
         return classify(classifierName, createInstance(features));
     }
 
-    public Pair<Double, String> classify(String classifierName, Instance instance) throws Exception {
-        Classifier cls = classifiers.get(classifierName);
-        return classify(cls, instance);
-    }
-
     public Pair<Double, String> classify(TObjectDoubleMap<String> features) throws Exception {
         return classify(createInstance(features));
     }
@@ -88,6 +83,13 @@ public class WekaModel implements Serializable {
     public Pair<Double, String> classify(Instance instance) throws Exception {
         return classify(defaulClassifier, instance);
     }
+
+    public Pair<Double, String> classify(String classifierName, Instance instance) throws Exception {
+        Classifier cls = classifiers.get(classifierName);
+        cls.classifyInstance(instance);
+        return classify(cls, instance);
+    }
+
 
     public Pair<Double, String> classify(Classifier cls, Instance instance) throws Exception {
         double[] dist = cls.distributionForInstance(instance);
@@ -102,7 +104,6 @@ public class WekaModel implements Serializable {
         }
         return Pair.of(best, classAlphabet.getClassName(bestIndex));
     }
-
 
     private Instance createInstance(TObjectDoubleMap<String> features) {
         Instance instance = new SparseInstance(1, emptyVector);
