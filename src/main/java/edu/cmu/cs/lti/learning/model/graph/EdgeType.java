@@ -8,5 +8,5 @@ package edu.cmu.cs.lti.learning.model.graph;
  * @author Zhengzhong Liu
  */
 public enum EdgeType {
-    Root, Coreference, After
+    Root, Coreference, After, Subevent
 }
