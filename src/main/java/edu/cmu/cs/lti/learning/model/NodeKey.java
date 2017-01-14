@@ -62,7 +62,7 @@ public class NodeKey implements Comparable<NodeKey>, Serializable {
     }
 
     public String toString() {
-        return String.format("[Node]_[%d:%d]_[%s,%s]@%d", begin, end, realis, mentionType, candidateIndex);
+        return String.format("<Node>_[%d:%d]_[%s,%s]@%d", begin, end, realis, mentionType, candidateIndex);
     }
 
     @Override
