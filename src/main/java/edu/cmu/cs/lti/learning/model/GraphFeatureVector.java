@@ -86,6 +86,10 @@ public class GraphFeatureVector implements Serializable {
         extend(fv, classAlphabet.getClassIndex(className));
     }
 
+    public void extend(FeatureVector fv, String className, double multiplier) {
+        extend(fv, classAlphabet.getClassIndex(className), multiplier);
+    }
+
     /**
      * Extend with default multiplier.
      *

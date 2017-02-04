@@ -1,10 +1,14 @@
 package edu.cmu.cs.lti.learning.model;
 
+import edu.cmu.cs.lti.learning.model.graph.EdgeType;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Represent possible node that can be associated on a mention candidate.
@@ -16,14 +20,30 @@ public class NodeKey implements Comparable<NodeKey>, Serializable {
     private int end;
     private String realis;
     private String mentionType;
-    private final int candidateIndex;
+    private final int nodeIndex;
+    private final int keyIndex;
 
-    public NodeKey(int begin, int end, String mentionType, String realis, int candidateIndex) {
+    private static final Map<EdgeType, NodeKey> rootKeys = new HashMap<>();
+
+    static {
+        for (EdgeType edgeType : EdgeType.values()) {
+            if (!edgeType.equals(EdgeType.Root)) {
+                rootKeys.put(edgeType, new NodeKey(0, 0, 0, edgeType.name(), "REALIS_" + edgeType.name(), 0));
+            }
+        }
+    }
+
+    public NodeKey(int begin, int end, int keyIndex, String mentionType, String realis, int nodeIndex) {
         this.begin = begin;
         this.end = end;
         this.mentionType = mentionType;
         this.realis = realis;
-        this.candidateIndex = candidateIndex;
+        this.nodeIndex = nodeIndex;
+        this.keyIndex = keyIndex;
+    }
+
+    public static NodeKey getRootKey(EdgeType type) {
+        return rootKeys.get(type);
     }
 
     public int hashCode() {
@@ -57,20 +77,32 @@ public class NodeKey implements Comparable<NodeKey>, Serializable {
         return mentionType;
     }
 
-    public int getCandidateIndex() {
-        return candidateIndex;
+    public int getNodeIndex() {
+        return nodeIndex;
+    }
+
+    public int getKeyIndex() {
+        return keyIndex;
+    }
+
+    public Pair<Integer, Integer> getFullIndex() {
+        return Pair.of(nodeIndex, keyIndex);
+    }
+
+    public Pair<Integer, String> getTypedIndex() {
+        return Pair.of(nodeIndex, mentionType);
     }
 
     public String toString() {
-        return String.format("<Node>_[%d:%d]_[%s,%s]@%d", begin, end, realis, mentionType, candidateIndex);
+        return String.format("<Node>_[%d:%d]_[%s,%s]@%d", begin, end, realis, mentionType, nodeIndex);
     }
 
     @Override
     public int compareTo(NodeKey o) {
-        return new CompareToBuilder().append(candidateIndex, o.candidateIndex).build();
+        return new CompareToBuilder().append(nodeIndex, o.nodeIndex).append(keyIndex, o.keyIndex).build();
     }
 
     public boolean isRoot() {
-        return candidateIndex == -1;
+        return nodeIndex == 0;
     }
 }

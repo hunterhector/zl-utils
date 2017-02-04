@@ -8,5 +8,13 @@ package edu.cmu.cs.lti.learning.model.graph;
  * @author Zhengzhong Liu
  */
 public enum EdgeType {
-    Coref_Root, Coreference, After, Subevent, After_Root
+    Root, Coreference, After, Subevent;
+
+    public static EdgeType[] getNormalTypes() {
+        return new EdgeType[]{Coreference, After, Subevent};
+    }
+
+    public static boolean isRootType(EdgeType t) {
+        return t == Root;
+    }
 }
