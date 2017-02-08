@@ -1,12 +1,13 @@
 package edu.cmu.cs.lti.ling;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.SetMultimap;
 import edu.mit.jwi.Dictionary;
 import edu.mit.jwi.IDictionary;
 import edu.mit.jwi.RAMDictionary;
 import edu.mit.jwi.data.ILoadPolicy;
 import edu.mit.jwi.item.*;
 import edu.mit.jwi.morph.WordnetStemmer;
-import org.javatuples.Pair;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -57,12 +58,12 @@ public class WordNetSearcher {
     }
 
 
-    public Set<Pair<String, String>> getDerivations(String word, String pos) {
+    public SetMultimap<String, String> getDerivations(String word, String pos) {
         return getDerivations(word, pennTreeTag2POS(pos));
     }
 
-    public Set<Pair<String, String>> getDerivations(String lemma, POS pos) {
-        Set<Pair<String, String>> derivationWords = new HashSet<>();
+    public SetMultimap<String, String> getDerivations(String lemma, POS pos) {
+        SetMultimap<String, String> derivationByPos = HashMultimap.create();
 
         for (ISynset synset : getAllSynsets(lemma, pos)) {
             for (IWord iWord : synset.getWords()) {
@@ -72,12 +73,13 @@ public class WordNetSearcher {
                     List<IWordID> derivationRelated = iWord.getRelatedWords(Pointer.DERIVATIONALLY_RELATED);
                     for (IWordID iWordID : derivationRelated) {
                         IWord derativeWord = dict.getWord(iWordID);
-                        derivationWords.add(Pair.with(derativeWord.getLemma(), derativeWord.getPOS().toString()));
+
+                        derivationByPos.put(derativeWord.getPOS().toString(), derativeWord.getLemma());
                     }
                 }
             }
         }
-        return derivationWords;
+        return derivationByPos;
     }
 
     public List<String> getAllSynonyms(String wordType, String posTag) {
@@ -249,21 +251,21 @@ public class WordNetSearcher {
 
 
     public static void main(String[] argv) throws IOException {
-        WordNetSearcher inmemoryWns = new WordNetSearcher("/Users/zhengzhongliu/Documents/projects/data/wnDict", true);
-        WordNetSearcher cachingWns = new WordNetSearcher("/Users/zhengzhongliu/Documents/projects/data/wnDict", true);
+        WordNetSearcher inmemoryWns = new WordNetSearcher
+                ("/Users/zhengzhongliu/Documents/projects/data/resources/wnDict", false);
 
         long start = System.nanoTime();
-
         inmemoryWns.test();
-
         long inmemoryTime = System.nanoTime() - start;
+        System.out.println(String.format("In memory time is %d.", inmemoryTime));
 
-        start = System.nanoTime();
+//        WordNetSearcher cachingWns = new WordNetSearcher
+//                ("/Users/zhengzhongliu/Documents/projects/data/resources/wnDict", false);
+//        start = System.nanoTime();
+//        cachingWns.test();
+//        long cacheTime = System.nanoTime() - start;
 
-        cachingWns.test();
 
-        long cacheTime = System.nanoTime() - start;
-
-        System.out.println(String.format("In memory time is %d, caching time is %d", inmemoryTime, cacheTime));
+        System.out.println(inmemoryWns.getDerivations("election", "NP"));
     }
 }
