@@ -191,6 +191,10 @@ public class GraphWeightVector implements Serializable {
         }
     }
 
+    public double dotProdAver(FeatureVector fv, String classLabel) {
+        return dotProdAver(fv, classAlphabet.getClassIndex(classLabel));
+    }
+
     public double dotProdAver(FeatureVector fv, int nodeKey) {
         AveragedWeightVector weights = nodeWeights[nodeKey];
         if (weights != null) {
