@@ -79,6 +79,10 @@ public class HashAlphabet extends FeatureAlphabet {
         return hasher.hashString(feature, Charsets.UTF_8).asInt() & hashMask;
     }
 
+    public boolean storeFeatureName(int featureIndex){
+        return storeReadable && featureCounters[featureIndex] != null;
+    }
+
     public String getMappedFeatureCounters(int featureIndex) {
         if (storeReadable) {
             TObjectIntMap counter = featureCounters[featureIndex];

@@ -15,10 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.PriorityQueue;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -118,7 +115,7 @@ public class HashedFeatureInspector {
                               PriorityQueue<Triple<Integer, String, Double>> features, int k) {
         for (int i = 0; i < weightVector.getFeatureDimension(); i++) {
             double weight = getWeights.apply(i);
-            if (featureAlphabet.getMappedFeatureCounters(i) != null) {
+            if (featureAlphabet.storeFeatureName(i)) {
                 features.add(Triple.of(i, classAlphabet.getClassName(classIndex) + "_" + featureAlphabet
                         .getMappedFeatureCounters(i), weight));
             }
@@ -133,7 +130,7 @@ public class HashedFeatureInspector {
         for (int i = 0; i < weightVector.getFeatureDimension(); i++) {
             double weight = getWeights.apply(i);
             if (weight != 0) {
-                if (featureAlphabet.getMappedFeatureCounters(i) != null) {
+                if (featureAlphabet.storeFeatureName(i)) {
                     features.add(Triple.of(i, classAlphabet.getClassName(previousClassIndex) + "->" +
                             classAlphabet.getClassName(nextClassIndex) + "_" +
                             featureAlphabet.getMappedFeatureCounters(i), weight));
@@ -177,9 +174,14 @@ public class HashedFeatureInspector {
         String modelFile = args[0];
         String outputDirectory = args[1];
 
-        GraphWeightVector crfModel = SerializationUtils.deserialize(new FileInputStream(new File(modelFile)));
+        GraphWeightVector model = SerializationUtils.deserialize(new FileInputStream(new File(modelFile)));
 
-        HashedFeatureInspector inspector = new HashedFeatureInspector(crfModel);
+        System.out.println("Writing out feature specification first");
+        FileUtils.writeLines(new File(outputDirectory, "featureSpec"),
+                Arrays.asList(model.getFeatureSpec().split(";")));
+        System.out.println("Writing out features.");
+
+        HashedFeatureInspector inspector = new HashedFeatureInspector(model);
 
         inspector.writeInspects(new File(outputDirectory, "top100Aver"), inspector.loadTopKAverageFeatures(100));
         inspector.writeInspects(new File(outputDirectory, "top100Final"), inspector.loadTopKFinalFeatures(100));
