@@ -3,19 +3,16 @@
  */
 package edu.cmu.cs.lti.utils;
 
-import com.google.common.base.Joiner;
+import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 /**
  * @author zhengzhongliu
  */
 public class StringUtils {
-    public static Joiner spaceJoiner = Joiner.on(" ");
+    private final static DiffMatchPatch diffMatchPatch = new DiffMatchPatch();
 
     public static String text2CsvField(String text) {
         return text.replace(",", ".").replace(":", "_").replace("\n", " ");
@@ -93,6 +90,47 @@ public class StringUtils {
         // System.out.println(intersect + " " + length1 + " " + length2);
 
         return 2 * intersect / (length1 + length2);
+    }
+
+    /**
+     * Match the altered string to the base one, compute an offset value for each character of the altered text.
+     *
+     * @param base
+     * @param altered
+     * @return The original offset of each character in the altered text.
+     */
+    public static int[] matchOffset(String base, String altered) {
+        int[] offsets = new int[altered.length()];
+
+        LinkedList<DiffMatchPatch.Diff> diffs = diffMatchPatch.diffMain(base, altered);
+
+        int basePointer = 0;
+        int alteredPointer = 0;
+
+        for (DiffMatchPatch.Diff diff : diffs) {
+            if (diff.operation.equals(DiffMatchPatch.Operation.EQUAL)) {
+                int textLength = diff.text.length();
+                // Move two pointers together.
+                for (int i = 0; i < textLength; i++) {
+                    offsets[alteredPointer + i] = basePointer + i;
+//                    System.out.println(alteredPointer + i + " to " + (basePointer + i));
+                }
+                basePointer += textLength;
+                alteredPointer += textLength;
+            } else if (diff.operation.equals(DiffMatchPatch.Operation.DELETE)) {
+                int textLength = diff.text.length();
+                // Move the base pointer only.
+                basePointer += textLength;
+            } else if (diff.operation.equals(DiffMatchPatch.Operation.INSERT)) {
+                int textLength = diff.text.length();
+                // Move the altered pointer only.
+                alteredPointer += textLength;
+            }
+        }
+
+//        offsets[alteredPointer] = basePointer;
+
+        return offsets;
     }
 
     public static void main(String[] args) {
