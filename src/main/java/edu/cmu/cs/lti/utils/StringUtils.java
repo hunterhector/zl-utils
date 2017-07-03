@@ -3,9 +3,13 @@
  */
 package edu.cmu.cs.lti.utils;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 /**
@@ -107,23 +111,34 @@ public class StringUtils {
         int basePointer = 0;
         int alteredPointer = 0;
 
+        int availableSpaces = 0;
+
         for (DiffMatchPatch.Diff diff : diffs) {
             if (diff.operation.equals(DiffMatchPatch.Operation.EQUAL)) {
                 int textLength = diff.text.length();
                 // Move two pointers together.
                 for (int i = 0; i < textLength; i++) {
                     offsets[alteredPointer + i] = basePointer + i;
-//                    System.out.println(alteredPointer + i + " to " + (basePointer + i));
                 }
                 basePointer += textLength;
                 alteredPointer += textLength;
+                availableSpaces = 0;
             } else if (diff.operation.equals(DiffMatchPatch.Operation.DELETE)) {
                 int textLength = diff.text.length();
                 // Move the base pointer only.
                 basePointer += textLength;
+                availableSpaces = textLength;
             } else if (diff.operation.equals(DiffMatchPatch.Operation.INSERT)) {
                 int textLength = diff.text.length();
                 // Move the altered pointer only.
+                for (int i = 0; i < textLength; i++) {
+                    if (availableSpaces > 0) {
+                        offsets[alteredPointer + i] = basePointer - availableSpaces;
+                        availableSpaces--;
+                    } else {
+                        offsets[alteredPointer + i] = basePointer - 1;
+                    }
+                }
                 alteredPointer += textLength;
             }
         }
@@ -133,27 +148,64 @@ public class StringUtils {
         return offsets;
     }
 
+    /**
+     * Make the altered text to be the same length as the base by padding spaces, match corresponding characters as
+     * much as possible. The altered text must be shorter than the base.
+     *
+     * @param base
+     * @param altered
+     * @return
+     */
+    public static String matchText(String base, String altered) {
+        int[] offsetMap = matchOffset(base, altered);
+
+        char[] charSeq = new char[base.length()];
+
+        for (int i = 0; i < charSeq.length; i++) {
+            charSeq[i] = ' ';
+        }
+        for (int alterIndex = 0; alterIndex < offsetMap.length; alterIndex++) {
+            int baseIndex = offsetMap[alterIndex];
+//            System.out.println(alterIndex + " -> " + baseIndex + " " + altered.charAt(alterIndex));
+            charSeq[baseIndex] = altered.charAt(alterIndex);
+        }
+
+        return new String(charSeq);
+    }
+
     public static void main(String[] args) {
-        Map<String, Double> m1 = new HashMap<String, Double>();
-        for (String sb : characterSkipBigram("Petersens")) {
-            System.out.println(sb);
-            if (m1.containsKey(sb)) {
-                m1.put(sb, m1.get(sb));
-            } else {
-                m1.put(sb, 1.0);
-            }
-        }
+//        Map<String, Double> m1 = new HashMap<String, Double>();
+//        for (String sb : characterSkipBigram("Petersens")) {
+//            System.out.println(sb);
+//            if (m1.containsKey(sb)) {
+//                m1.put(sb, m1.get(sb));
+//            } else {
+//                m1.put(sb, 1.0);
+//            }
+//        }
+//
+//        Map<String, Double> m2 = new HashMap<String, Double>();
+//        for (String sb : characterSkipBigram("Petersen")) {
+//            System.out.println(sb);
+//            if (m2.containsKey(sb)) {
+//                m2.put(sb, m2.get(sb));
+//            } else {
+//                m2.put(sb, 1.0);
+//            }
+//        }
+//
+//        System.out.println("Dice " + strDice(m1, m2));
 
-        Map<String, Double> m2 = new HashMap<String, Double>();
-        for (String sb : characterSkipBigram("Petersen")) {
-            System.out.println(sb);
-            if (m2.containsKey(sb)) {
-                m2.put(sb, m2.get(sb));
-            } else {
-                m2.put(sb, 1.0);
-            }
-        }
+        String xmlEscaped = "&lt;body xmlns=\"http://www.w3.org/1999/xhtml\"&gt;&lt;p class=\"XHFounderPOuter\"&gt;";
+        String xmlUnescaped = StringEscapeUtils.unescapeXml(xmlEscaped);
+        System.out.println(String.format("Origin: [%s], length %d.", xmlEscaped, xmlEscaped.length()));
+        System.out.println(String.format("Unescaped: [%s], length %d.", xmlUnescaped, xmlUnescaped.length()));
 
-        System.out.println("Dice " + strDice(m1, m2));
+        String matchedText = matchText(xmlEscaped, xmlUnescaped);
+
+        String reverseMatch = matchText(xmlUnescaped, xmlEscaped);
+
+        System.out.println(String.format("Matched: [%s], length %d.", matchedText, matchedText.length()));
+        System.out.println(String.format("Reverse Matched: [%s], length %d.", reverseMatch, reverseMatch.length()));
     }
 }
