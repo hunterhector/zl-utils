@@ -99,17 +99,17 @@ public class StringUtils {
     /**
      * Match the altered string to the base one, compute an offset value for each character of the altered text.
      *
-     * @param base
-     * @param altered
-     * @return The original offset of each character in the altered text.
+     * @param target The source String.
+     * @param source The target String.
+     * @return An integer array contains the mapping. The map allow you to get the target index from source index.
      */
-    public static int[] matchOffset(String base, String altered) {
-        int[] offsets = new int[altered.length()];
+    public static int[] translateOffset(String target, String source) {
+        int[] offsets = new int[source.length()];
 
-        LinkedList<DiffMatchPatch.Diff> diffs = diffMatchPatch.diffMain(base, altered);
+        LinkedList<DiffMatchPatch.Diff> diffs = diffMatchPatch.diffMain(target, source);
 
-        int basePointer = 0;
-        int alteredPointer = 0;
+        int targetPointer = 0;
+        int sourcePointer = 0;
 
         int availableSpaces = 0;
 
@@ -118,28 +118,30 @@ public class StringUtils {
                 int textLength = diff.text.length();
                 // Move two pointers together.
                 for (int i = 0; i < textLength; i++) {
-                    offsets[alteredPointer + i] = basePointer + i;
+                    offsets[sourcePointer + i] = targetPointer + i;
                 }
-                basePointer += textLength;
-                alteredPointer += textLength;
+                targetPointer += textLength;
+                sourcePointer += textLength;
                 availableSpaces = 0;
             } else if (diff.operation.equals(DiffMatchPatch.Operation.DELETE)) {
                 int textLength = diff.text.length();
-                // Move the base pointer only.
-                basePointer += textLength;
+                // Move the target pointer only.
+                targetPointer += textLength;
                 availableSpaces = textLength;
             } else if (diff.operation.equals(DiffMatchPatch.Operation.INSERT)) {
                 int textLength = diff.text.length();
-                // Move the altered pointer only.
+                // Move the source pointer only.
                 for (int i = 0; i < textLength; i++) {
                     if (availableSpaces > 0) {
-                        offsets[alteredPointer + i] = basePointer - availableSpaces;
+                        offsets[sourcePointer + i] = targetPointer - availableSpaces;
+                        offsets[sourcePointer + i] = targetPointer - availableSpaces;
                         availableSpaces--;
                     } else {
-                        offsets[alteredPointer + i] = basePointer - 1;
+                        int adjustedTargetPointer = targetPointer > 0 ? targetPointer - 1 : 0;
+                        offsets[sourcePointer + i] = adjustedTargetPointer;
                     }
                 }
-                alteredPointer += textLength;
+                sourcePointer += textLength;
             }
         }
 
@@ -157,7 +159,7 @@ public class StringUtils {
      * @return
      */
     public static String matchText(String base, String altered) {
-        int[] offsetMap = matchOffset(base, altered);
+        int[] offsetMap = translateOffset(base, altered);
 
         char[] charSeq = new char[base.length()];
 
@@ -166,7 +168,7 @@ public class StringUtils {
         }
         for (int alterIndex = 0; alterIndex < offsetMap.length; alterIndex++) {
             int baseIndex = offsetMap[alterIndex];
-//            System.out.println(alterIndex + " -> " + baseIndex + " " + altered.charAt(alterIndex));
+            System.out.println(alterIndex + " -> " + baseIndex + " " + altered.charAt(alterIndex));
             charSeq[baseIndex] = altered.charAt(alterIndex);
         }
 
@@ -174,38 +176,23 @@ public class StringUtils {
     }
 
     public static void main(String[] args) {
-//        Map<String, Double> m1 = new HashMap<String, Double>();
-//        for (String sb : characterSkipBigram("Petersens")) {
-//            System.out.println(sb);
-//            if (m1.containsKey(sb)) {
-//                m1.put(sb, m1.get(sb));
-//            } else {
-//                m1.put(sb, 1.0);
-//            }
-//        }
-//
-//        Map<String, Double> m2 = new HashMap<String, Double>();
-//        for (String sb : characterSkipBigram("Petersen")) {
-//            System.out.println(sb);
-//            if (m2.containsKey(sb)) {
-//                m2.put(sb, m2.get(sb));
-//            } else {
-//                m2.put(sb, 1.0);
-//            }
-//        }
-//
-//        System.out.println("Dice " + strDice(m1, m2));
 
         String xmlEscaped = "&lt;body xmlns=\"http://www.w3.org/1999/xhtml\"&gt;&lt;p class=\"XHFounderPOuter\"&gt;";
         String xmlUnescaped = StringEscapeUtils.unescapeXml(xmlEscaped);
+        String missHeader = xmlUnescaped.substring(1);
+
         System.out.println(String.format("Origin: [%s], length %d.", xmlEscaped, xmlEscaped.length()));
         System.out.println(String.format("Unescaped: [%s], length %d.", xmlUnescaped, xmlUnescaped.length()));
+        System.out.println(String.format("No head: [%s], length %d.", missHeader, missHeader.length()));
 
-        String matchedText = matchText(xmlEscaped, xmlUnescaped);
+//        String matchedText = matchText(xmlEscaped, xmlUnescaped);
+//        String reverseMatch = matchText(xmlUnescaped, xmlEscaped);
+//        System.out.println(String.format("Matched: [%s], length %d.", matchedText, matchedText.length()));
+//        System.out.println(String.format("Reverse Matched: [%s], length %d.", reverseMatch, reverseMatch.length()));
 
-        String reverseMatch = matchText(xmlUnescaped, xmlEscaped);
+        System.out.println("Matching no header.");
+        String matchMisshead = matchText(missHeader, xmlEscaped);
 
-        System.out.println(String.format("Matched: [%s], length %d.", matchedText, matchedText.length()));
-        System.out.println(String.format("Reverse Matched: [%s], length %d.", reverseMatch, reverseMatch.length()));
+        System.out.println(String.format("Match No Head [%s], length %d.", matchMisshead, matchMisshead.length()));
     }
 }
