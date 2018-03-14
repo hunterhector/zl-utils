@@ -168,7 +168,7 @@ public class StringUtils {
         }
         for (int alterIndex = 0; alterIndex < offsetMap.length; alterIndex++) {
             int baseIndex = offsetMap[alterIndex];
-            System.out.println(alterIndex + " -> " + baseIndex + " " + altered.charAt(alterIndex));
+//            System.out.println("matchText:" + alterIndex + " -> " + baseIndex + " " + altered.charAt(alterIndex));
             charSeq[baseIndex] = altered.charAt(alterIndex);
         }
 
