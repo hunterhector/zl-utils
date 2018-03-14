@@ -29,6 +29,12 @@ public class DebugUtils {
                 "Memory: %.2f MB", msg, heapSize, heapMaxSize, heapFreeSize, heapSize - heapFreeSize);
     }
 
+    public static void checkClassSource(Class clazz) {
+        System.out.println("Classes loaded from: " + clazz.getProtectionDomain().getCodeSource().getLocation()
+                .getPath());
+        pause();
+    }
+
     /**
      * Pause when it is in debug mode.
      *
