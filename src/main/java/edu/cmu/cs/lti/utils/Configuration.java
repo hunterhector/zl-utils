@@ -60,6 +60,10 @@ public class Configuration {
         return getOrElse(key, null);
     }
 
+    public void set(String key, String value) {
+        properties.setProperty(key, value);
+    }
+
     public boolean getBoolean(String key, boolean defaultVal) {
         String value = getOrElse(key, null);
         if (value == null) {
