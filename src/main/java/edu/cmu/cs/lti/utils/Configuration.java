@@ -132,8 +132,8 @@ public class Configuration {
         return results;
     }
 
-    public File getConfigFile() {
-        return configFile;
-    }
+//    public File getConfigFile() {
+//        return configFile;
+//    }
 
 }
