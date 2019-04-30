@@ -1,5 +1,6 @@
 package edu.cmu.cs.lti.utils;
 
+import gnu.trove.map.TObjectIntMap;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -61,5 +62,26 @@ public class CollectionUtils {
             }
         }
         return result;
+    }
+
+    public static <E> List<E> findMaxCount(TObjectIntMap<E> counter) {
+        int maxCount = -1;
+
+        List<E> mostFrequent = new ArrayList<>();
+
+        for (E s : counter.keySet()) {
+            int count = counter.get(s);
+            if (count > maxCount) {
+                maxCount = count;
+            }
+        }
+
+        for (E e : counter.keySet()) {
+            if (counter.get(e) == maxCount) {
+                mostFrequent.add(e);
+            }
+        }
+
+        return mostFrequent;
     }
 }
